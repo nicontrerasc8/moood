@@ -1,58 +1,130 @@
-import { DeployButton } from "@/components/deploy-button";
-import { EnvVarWarning } from "@/components/env-var-warning";
-import { AuthButton } from "@/components/auth-button";
-import { Hero } from "@/components/hero";
-import { ThemeSwitcher } from "@/components/theme-switcher";
-import { ConnectSupabaseSteps } from "@/components/tutorial/connect-supabase-steps";
-import { SignUpUserSteps } from "@/components/tutorial/sign-up-user-steps";
-import { hasEnvVars } from "@/lib/utils";
 import Link from "next/link";
-import { Suspense } from "react";
+import { ArrowRight, Building2, Map, ShieldCheck, SmilePlus, Sparkles } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
-export default function Home() {
+const pillars = [
+  {
+    icon: SmilePlus,
+    title: "Check-in de 1 clic",
+    description: "Marcacion hiper simple con anonimato configurable, nota opcional y solicitud de reunion.",
+  },
+  {
+    icon: Building2,
+    title: "Dashboard ejecutivo",
+    description: "KPIs, filtros globales, tabla detallada y segmentacion para RRHH, lideres y direccion.",
+  },
+  {
+    icon: Map,
+    title: "Mapa emocional",
+    description: "Lectura pais > region > ciudad > sede con intensidad por mood y foco geografico.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Seguridad por diseno",
+    description: "Supabase Auth, Postgres, Storage y RLS con proteccion de identidad cuando corresponde.",
+  },
+];
+
+export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center">
-      <div className="flex-1 w-full flex flex-col gap-20 items-center">
-        <nav className="w-full flex justify-center border-b border-b-foreground/10 h-16">
-          <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-            <div className="flex gap-5 items-center font-semibold">
-              <Link href={"/"}>Next.js Supabase Starter</Link>
-              <div className="flex items-center gap-2">
-                <DeployButton />
-              </div>
+    <main className="relative overflow-hidden">
+      <section className="mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-10 lg:px-8">
+        <div className="surface-glass flex items-center justify-between rounded-full border px-5 py-3">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground">
+              <Sparkles className="h-5 w-5" />
             </div>
-            {!hasEnvVars ? (
-              <EnvVarWarning />
-            ) : (
-              <Suspense>
-                <AuthButton />
-              </Suspense>
-            )}
+            <div>
+              <p className="font-semibold">MOOOD</p>
+        
+            </div>
           </div>
-        </nav>
-        <div className="flex-1 flex flex-col gap-20 max-w-5xl p-5">
-          <Hero />
-          <main className="flex-1 flex flex-col gap-6 px-4">
-            <h2 className="font-medium text-xl mb-4">Next steps</h2>
-            {hasEnvVars ? <SignUpUserSteps /> : <ConnectSupabaseSteps />}
-          </main>
+          <Link href="/dashboard">
+            <Button className="rounded-full">
+              Abrir demo
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
+          </Link>
         </div>
 
-        <footer className="w-full flex items-center justify-center border-t mx-auto text-center text-xs gap-8 py-16">
-          <p>
-            Powered by{" "}
-            <a
-              href="https://supabase.com/?utm_source=create-next-app&utm_medium=template&utm_term=nextjs"
-              target="_blank"
-              className="font-bold hover:underline"
-              rel="noreferrer"
-            >
-              Supabase
-            </a>
-          </p>
-          <ThemeSwitcher />
-        </footer>
-      </div>
+        <div className="grid flex-1 items-center gap-10 py-16 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <p className="mb-4 text-sm uppercase tracking-[0.28em] text-primary">Organizational mood intelligence</p>
+            <h1 className="max-w-4xl text-5xl font-semibold leading-tight lg:text-7xl">
+              Un pulso emocional simple para el colaborador y un centro de mando premium para gerencia.
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
+              MOOOD convierte check-ins, alertas y geografia organizacional en senales accionables en tiempo real, sin
+              invadir.
+            </p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <Link href="/dashboard">
+                <Button size="lg" className="rounded-full px-6">
+                  Ver dashboard
+                </Button>
+              </Link>
+              <Link href="/mood">
+                <Button size="lg" variant="outline" className="rounded-full px-6">
+                  Probar mood check-in
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="grid gap-4">
+            <Card className="rounded-[2rem] border-white/70 bg-[linear-gradient(135deg,#8E3B8F_0%,#F5525A_52%,#F4B233_100%)] text-white shadow-xl">
+              <CardContent className="space-y-5 p-7">
+                <div className="flex items-center justify-between text-sm text-white/80">
+                  <span>Mood promedio global</span>
+                  <span>Hoy</span>
+                </div>
+                <p className="text-6xl font-semibold">3.8</p>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur-sm">
+                    <p className="text-xs text-white/75">Marcaciones</p>
+                    <p className="mt-2 text-2xl font-semibold">428</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur-sm">
+                    <p className="text-xs text-white/75">Anonimo</p>
+                    <p className="mt-2 text-2xl font-semibold">38%</p>
+                  </div>
+                  <div className="rounded-2xl bg-white/12 p-4 backdrop-blur-sm">
+                    <p className="text-xs text-white/75">Alertas</p>
+                    <p className="mt-2 text-2xl font-semibold">12</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              {pillars.map((pillar, index) => {
+                const Icon = pillar.icon;
+                const accentClass =
+                  index === 0
+                    ? "bg-[#8E3B8F]/10 text-[#8E3B8F]"
+                    : index === 1
+                      ? "bg-[#F5525A]/10 text-[#F5525A]"
+                      : index === 2
+                        ? "bg-[#74C1B3]/15 text-[#2D8E83]"
+                        : "bg-[#F4B233]/15 text-[#C98912]";
+
+                return (
+                  <Card key={pillar.title} className="rounded-[2rem] border-white/80 bg-white/90 shadow-sm">
+                    <CardContent className="p-6">
+                      <div className={`mb-4 inline-flex rounded-2xl p-3 ${accentClass}`}>
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h2 className="text-xl font-semibold">{pillar.title}</h2>
+                      <p className="mt-2 text-sm text-muted-foreground">{pillar.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }
