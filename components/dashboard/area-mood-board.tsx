@@ -1,114 +1,162 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn, formatMood } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { AreaMoodPoint } from "@/types/app";
 
 function getMoodStatus(score: number) {
   if (score >= 4.3) return "Impulso alto";
   if (score >= 3.7) return "Saludable";
-  if (score >= 3) return "En observacion";
-  return "Intervencion sugerida";
+  if (score >= 3) return "En observación";
+  if (score >= 2) return "En riesgo";
+  return "Intervención urgente";
 }
 
-function getMoodTheme(score: number, hasData: boolean) {
+function getMoodEmoji(score: number) {
+  if (score >= 4.3) return "😄";
+  if (score >= 3.7) return "😊";
+  if (score >= 3) return "😐";
+  if (score >= 2) return "😟";
+  return "😢";
+}
+
+type Theme = {
+  gradient: string;
+  glow: string;
+  statBg: string;
+  badge: string;
+};
+
+function getMoodTheme(score: number, hasData: boolean): Theme {
   if (!hasData) {
     return {
-      card: "border-slate-200 bg-gradient-to-br from-slate-300 via-slate-400 to-slate-500",
-      stat: "bg-white/12 text-white/88",
+      gradient: "from-slate-600 via-slate-500 to-slate-400",
+      glow: "shadow-slate-500/20",
+      statBg: "bg-white/10",
+      badge: "bg-white/10 text-white/60",
     };
   }
-
-  if (score >= 4.2) {
+  if (score >= 4.3) {
     return {
-      card: "border-emerald-300/40 bg-gradient-to-br from-emerald-400 via-lime-400 to-emerald-500",
-      stat: "bg-emerald-950/18 text-white",
+      gradient: "from-emerald-500 via-teal-400 to-cyan-400",
+      glow: "shadow-emerald-500/30",
+      statBg: "bg-emerald-950/20",
+      badge: "bg-emerald-950/25 text-white",
     };
   }
-
-  if (score >= 3.5) {
+  if (score >= 3.7) {
     return {
-      card: "border-amber-300/40 bg-gradient-to-br from-amber-300 via-orange-300 to-amber-500",
-      stat: "bg-amber-950/16 text-white",
+      gradient: "from-lime-500 via-green-400 to-emerald-400",
+      glow: "shadow-lime-500/25",
+      statBg: "bg-green-950/20",
+      badge: "bg-green-950/20 text-white",
     };
   }
-
-  if (score >= 2.5) {
+  if (score >= 3) {
     return {
-      card: "border-orange-300/40 bg-gradient-to-br from-orange-300 via-orange-400 to-rose-400",
-      stat: "bg-orange-950/16 text-white",
+      gradient: "from-amber-400 via-orange-400 to-amber-300",
+      glow: "shadow-amber-400/30",
+      statBg: "bg-amber-950/20",
+      badge: "bg-amber-950/20 text-white",
     };
   }
-
+  if (score >= 2) {
+    return {
+      gradient: "from-orange-500 via-rose-400 to-pink-400",
+      glow: "shadow-orange-500/30",
+      statBg: "bg-rose-950/20",
+      badge: "bg-rose-950/20 text-white",
+    };
+  }
   return {
-    card: "border-rose-300/40 bg-gradient-to-br from-rose-400 via-red-400 to-fuchsia-500",
-    stat: "bg-rose-950/16 text-white",
+    gradient: "from-rose-600 via-fuchsia-500 to-purple-500",
+    glow: "shadow-rose-500/30",
+    statBg: "bg-rose-950/20",
+    badge: "bg-rose-950/20 text-white",
   };
 }
 
 export function AreaMoodBoard({ areas }: { areas: AreaMoodPoint[] }) {
   return (
-    <Card className="overflow-hidden rounded-[2rem] border-white/70 bg-white/90 shadow-sm">
-      <CardHeader className="space-y-2">
-        <CardTitle>Mood board por area</CardTitle>
-        <CardDescription>
-          Cada tarjeta resume el promedio ponderado del area segun el volumen real de marcaciones del periodo filtrado.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {areas.map((area) => {
-            const hasData = area.checkins > 0;
-            const theme = getMoodTheme(area.averageMood, hasData);
-
-            return (
-              <article
-                key={area.id}
-                className={cn(
-                  "relative overflow-hidden rounded-[1.75rem] border p-5 text-white shadow-[0_20px_50px_rgba(15,23,42,0.14)]",
-                  theme.card,
-                )}
-              >
-                <div className="absolute -right-10 -top-10 h-32 w-32 rounded-full bg-white/20 blur-2xl" />
-                <div className="absolute bottom-0 right-0 h-28 w-28 rounded-full bg-slate-950/10 blur-2xl" />
-
-                <div className="relative flex h-full flex-col justify-between gap-6">
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.28em] text-white/72">Area</p>
-                      <h3 className="mt-2 text-xl font-semibold leading-tight">{area.label}</h3>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/72">Ponderado</p>
-                      <p className="mt-2 text-2xl font-semibold">{hasData ? area.weightedScore.toFixed(2) : "--"}</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <p className="text-5xl font-semibold leading-none">{hasData ? area.weightedScore.toFixed(2) : "--"}</p>
-                    <p className="text-sm font-medium text-white/82">
-                      {hasData ? `Ponderado numerico · promedio area ${formatMood(area.averageMood)} - ${getMoodStatus(area.averageMood)}` : "Sin marcaciones en el periodo"}
-                    </p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className={cn("rounded-2xl px-3 py-3", theme.stat)}>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/72">Marc.</p>
-                      <p className="mt-2 text-lg font-semibold">{area.checkins}</p>
-                    </div>
-                    <div className={cn("rounded-2xl px-3 py-3", theme.stat)}>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/72">Cob.</p>
-                      <p className="mt-2 text-lg font-semibold">{area.participation}%</p>
-                    </div>
-                    <div className={cn("rounded-2xl px-3 py-3", theme.stat)}>
-                      <p className="text-[11px] uppercase tracking-[0.2em] text-white/72">Equipo</p>
-                      <p className="mt-2 text-lg font-semibold">{area.employees}</p>
-                    </div>
-                  </div>
-                </div>
-              </article>
-            );
-          })}
+    <div className="space-y-4">
+      <div className="flex items-end justify-between px-1">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">Mood board</p>
+          <h2 className="mt-1 text-2xl font-semibold">Por área</h2>
         </div>
-      </CardContent>
-    </Card>
+        <p className="text-xs text-muted-foreground">{areas.length} áreas activas</p>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {areas.map((area) => {
+          const hasData = area.checkins > 0;
+          const theme = getMoodTheme(area.averageMood, hasData);
+          const barPct = Math.round((area.averageMood / 5) * 100);
+
+          return (
+            <article
+              key={area.id}
+              className={cn(
+                "group relative overflow-hidden rounded-[1.75rem] p-5 text-white transition-all duration-200",
+                "hover:-translate-y-0.5",
+                `bg-gradient-to-br ${theme.gradient}`,
+                `shadow-[0_16px_40px_rgba(15,23,42,0.15)] hover:shadow-[0_24px_50px_rgba(15,23,42,0.22)] ${theme.glow}`,
+              )}
+            >
+              {/* Decorative blobs */}
+              <div className="pointer-events-none absolute -right-8 -top-8 h-36 w-36 rounded-full bg-white/15 blur-2xl" />
+              <div className="pointer-events-none absolute -bottom-6 -left-6 h-28 w-28 rounded-full bg-black/10 blur-2xl" />
+              <div className="pointer-events-none absolute bottom-0 right-0 h-20 w-20 rounded-full bg-white/10 blur-xl" />
+
+              <div className="relative flex h-full flex-col gap-5">
+                {/* Header row */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-white/60">Área</p>
+                    <h3 className="mt-1.5 text-lg font-bold leading-snug">{area.label}</h3>
+                  </div>
+                  <span className={cn("mt-1 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold", theme.badge)}>
+                    {getMoodEmoji(area.averageMood)} {getMoodStatus(area.averageMood)}
+                  </span>
+                </div>
+
+                {/* Score hero */}
+                <div className="space-y-2">
+                  <div className="flex items-end gap-2">
+                    <p className="text-6xl font-black leading-none tracking-tight">
+                      {hasData ? area.averageMood.toFixed(1) : "--"}
+                    </p>
+                    {hasData && (
+                      <p className="mb-2 text-sm font-medium text-white/60">/ 5</p>
+                    )}
+                  </div>
+                  {/* Progress bar */}
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/20">
+                    <div
+                      className="h-full rounded-full bg-white/70 transition-all duration-700"
+                      style={{ width: `${hasData ? barPct : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-[11px] font-medium text-white/60">
+                    {hasData ? `Peso ${area.weight}% del total · ${area.checkins} marcaciones` : "Sin marcaciones en el periodo"}
+                  </p>
+                </div>
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { label: "Marc.", value: String(area.checkins) },
+                    { label: "Cob.", value: `${area.participation}%` },
+                    { label: "Equipo", value: area.employees > 0 ? String(area.employees) : "—" },
+                  ].map(({ label, value }) => (
+                    <div key={label} className={cn("rounded-2xl px-3 py-2.5", theme.statBg)}>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-white/55">{label}</p>
+                      <p className="mt-1.5 text-base font-bold">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
   );
 }
