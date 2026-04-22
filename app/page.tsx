@@ -73,7 +73,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-4">
-            <Card className="rounded-[2rem] border-white/70 bg-[linear-gradient(135deg,#8E3B8F_0%,#F5525A_52%,#F4B233_100%)] text-white shadow-xl">
+            <Card className="bg-brand-spectrum rounded-[2rem] border-white/70 text-white shadow-xl shadow-black/10">
               <CardContent className="space-y-5 p-7">
                 <div className="flex items-center justify-between text-sm text-white/80">
                   <span>Mood promedio global</span>
@@ -102,12 +102,12 @@ export default function HomePage() {
                 const Icon = pillar.icon;
                 const accentClass =
                   index === 0
-                    ? "bg-[#8E3B8F]/10 text-[#8E3B8F]"
+                    ? "bg-brand-purple/10 text-foreground"
                     : index === 1
-                      ? "bg-[#F5525A]/10 text-[#F5525A]"
+                      ? "bg-brand-coral/10 text-foreground"
                       : index === 2
-                        ? "bg-[#74C1B3]/15 text-[#2D8E83]"
-                        : "bg-[#F4B233]/15 text-[#C98912]";
+                        ? "bg-brand-teal/15 text-foreground"
+                        : "bg-brand-yellow/15 text-foreground";
 
                 return (
                   <Card key={pillar.title} className="rounded-[2rem] border-white/80 bg-white/90 shadow-sm">

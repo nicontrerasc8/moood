@@ -20,6 +20,7 @@ drop table if exists public.notification_logs cascade;
 drop table if exists public.alerts cascade;
 drop table if exists public.alert_rules cascade;
 drop table if exists public.survey_responses cascade;
+drop table if exists public.survey_assignments cascade;
 drop table if exists public.survey_questions cascade;
 drop table if exists public.surveys cascade;
 drop table if exists public.mood_checkins cascade;

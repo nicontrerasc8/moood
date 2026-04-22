@@ -5,7 +5,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ChartPoint } from "@/types/app";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
-const colors = ["#d14b49", "#f19d38", "#f3cd5e", "#4db38e", "#1f7a63"];
+const colors = [
+  "rgb(var(--brand-coral))",
+  "rgb(var(--brand-yellow))",
+  "rgb(var(--brand-purple))",
+  "rgb(var(--brand-green))",
+  "rgb(var(--brand-teal))",
+];
 
 export function DonutChartCard({
   title,

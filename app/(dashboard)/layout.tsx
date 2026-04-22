@@ -10,17 +10,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (user.role === "employee") {
     return (
-      <div className="min-h-screen bg-[linear-gradient(180deg,#ffffff_0%,#f9f6fb_55%,#ffffff_100%)]">
+      <div className="bg-brand-shell min-h-screen">
         <header className="border-b bg-white/90 px-4 py-4 backdrop-blur">
-          <div className="mx-auto max-w-4xl space-y-4">
+          <div className="mx-auto max-w-6xl space-y-4">
             <div className="flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <p className="truncate text-base font-semibold text-slate-900">{user.full_name}</p>
-                <p className="truncate text-sm text-slate-500">{user.email}</p>
+                <p className="truncate text-base font-semibold text-foreground">{user.full_name}</p>
+                <p className="truncate text-sm text-muted-foreground/70">{user.email}</p>
               </div>
 
               <form action={signOutAction}>
-                <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700">
+                <button className="rounded-full border bg-white px-4 py-2 text-sm font-medium text-foreground">
                   Salir
                 </button>
               </form>
@@ -28,7 +28,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           </div>
         </header>
 
-        <main className="mx-auto max-w-4xl px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-6xl px-4 py-6">{children}</main>
       </div>
     );
   }

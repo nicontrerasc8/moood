@@ -4,30 +4,44 @@
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222 22% 16%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 22% 16%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 22% 16%;
-    --primary: 299 42% 40%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 169 38% 95%;
-    --secondary-foreground: 222 22% 16%;
-    --muted: 210 25% 96%;
-    --muted-foreground: 222 10% 42%;
-    --accent: 39 90% 94%;
-    --accent-foreground: 222 22% 16%;
-    --destructive: 357 89% 64%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 220 18% 89%;
-    --input: 220 18% 89%;
-    --ring: 299 42% 40%;
-    --chart-1: 299 42% 40%;
-    --chart-2: 357 89% 64%;
-    --chart-3: 169 38% 61%;
-    --chart-4: 103 55% 59%;
-    --chart-5: 39 90% 58%;
+    --background: 255 255 255;
+    --foreground: 0 0 0;
+    --card: 255 255 255;
+    --card-foreground: 0 0 0;
+    --popover: 255 255 255;
+    --popover-foreground: 0 0 0;
+    --primary: 121 28 126;
+    --primary-foreground: 255 255 255;
+    --secondary: 127 218 204;
+    --secondary-foreground: 0 0 0;
+    --muted: 248 248 248;
+    --muted-foreground: 92 92 92;
+    --accent: 255 188 51;
+    --accent-foreground: 0 0 0;
+    --destructive: 211 47 57;
+    --destructive-foreground: 255 255 255;
+    --border: 0 0 0;
+    --input: 0 0 0;
+    --ring: 121 28 126;
+    --chart-1: 18 189 162;
+    --chart-2: 211 47 57;
+    --chart-3: 121 28 126;
+    --chart-4: 89 179 56;
+    --chart-5: 209 133 0;
+    --brand-turquoise-soft: 127 218 204;
+    --brand-turquoise: 18 189 162;
+    --brand-red-soft: 255 89 97;
+    --brand-red: 211 47 57;
+    --brand-purple-soft: 157 65 156;
+    --brand-purple: 121 28 126;
+    --brand-green-soft: 139 224 103;
+    --brand-green: 89 179 56;
+    --brand-yellow-soft: 255 188 51;
+    --brand-yellow: 209 133 0;
+    --brand-gray-soft: 248 248 248;
+    --brand-gray: 172 172 172;
+    --brand-coral: 211 47 57;
+    --brand-teal: 18 189 162;
     --radius: 1rem;
   }
 }
@@ -39,17 +53,42 @@
 
   body {
     @apply min-h-screen bg-background text-foreground;
-    background-image:
-      radial-gradient(circle at top left, rgba(142, 59, 143, 0.14), transparent 30%),
-      radial-gradient(circle at top right, rgba(116, 193, 179, 0.2), transparent 28%),
-      radial-gradient(circle at bottom right, rgba(244, 178, 51, 0.18), transparent 24%),
-      linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 255, 255, 1));
   }
 }
 
 @layer utilities {
   .surface-glass {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 255, 255, 0.82));
+    background: rgb(var(--background) / 0.9);
     backdrop-filter: blur(18px);
+    box-shadow: 0 18px 38px rgb(var(--foreground) / 0.06);
+  }
+
+  .bg-brand-spectrum {
+    background: linear-gradient(
+      135deg,
+      rgb(var(--brand-turquoise-soft)) 0%,
+      rgb(var(--brand-purple-soft)) 50%,
+      rgb(var(--brand-red-soft)) 100%
+    );
+  }
+
+  .bg-brand-warm {
+    background-color: rgb(var(--brand-red));
+  }
+
+  .bg-brand-cool {
+    background-color: rgb(var(--brand-turquoise));
+  }
+
+  .bg-brand-contrast {
+    background-color: rgb(var(--brand-yellow-soft));
+  }
+
+  .bg-brand-paper {
+    background-color: rgb(var(--brand-gray-soft));
+  }
+
+  .bg-brand-shell {
+    background-color: rgb(var(--brand-gray-soft));
   }
 }

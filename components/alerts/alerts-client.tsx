@@ -10,30 +10,30 @@ import type { Alert, AlertStatus, AlertType } from "@/types/app";
 const typeConfig: Record<AlertType, {
   label: string;
   icon: React.ElementType;
-  gradient: string;
+  tone: string;
   badge: string;
   iconColor: string;
 }> = {
   marking_missing: {
     label: "No marcación",
     icon: Bell,
-    gradient: "from-amber-400 via-orange-400 to-amber-300",
-    badge: "bg-amber-100 text-amber-800 ring-amber-200",
-    iconColor: "text-amber-500",
+    tone: "bg-brand-yellow",
+    badge: "bg-brand-yellow/18 text-foreground ring-foreground/10",
+    iconColor: "text-brand-yellow",
   },
   marking_requested: {
     label: "Marcación solicitada",
     icon: AlertTriangle,
-    gradient: "from-blue-500 via-indigo-400 to-blue-400",
-    badge: "bg-blue-100 text-blue-800 ring-blue-200",
-    iconColor: "text-blue-500",
+    tone: "bg-brand-teal",
+    badge: "bg-brand-teal/18 text-foreground ring-foreground/10",
+    iconColor: "text-brand-teal",
   },
   negative_trend: {
     label: "Tendencia negativa",
     icon: TrendingDown,
-    gradient: "from-rose-500 via-fuchsia-500 to-rose-400",
-    badge: "bg-rose-100 text-rose-800 ring-rose-200",
-    iconColor: "text-rose-500",
+    tone: "bg-brand-coral",
+    badge: "bg-brand-coral/14 text-foreground ring-foreground/10",
+    iconColor: "text-brand-coral",
   },
 };
 
@@ -44,23 +44,23 @@ const statusConfig: Record<AlertStatus, {
 }> = {
   open: {
     label: "Abierta",
-    badge: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
-    dot: "bg-rose-400 animate-pulse",
+    badge: "bg-brand-coral/14 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-coral animate-pulse",
   },
   sent: {
     label: "Enviada",
-    badge: "bg-blue-50 text-blue-700 ring-1 ring-blue-200",
-    dot: "bg-blue-400",
+    badge: "bg-brand-teal/16 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-teal",
   },
   resolved: {
     label: "Resuelta",
-    badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    dot: "bg-emerald-400",
+    badge: "bg-brand-green/18 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-green",
   },
   dismissed: {
     label: "Descartada",
-    badge: "bg-slate-100 text-slate-500 ring-1 ring-slate-200",
-    dot: "bg-slate-300",
+    badge: "bg-brand-purple/12 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-purple",
   },
 };
 
@@ -78,11 +78,11 @@ function StatCard({
   accent: string;
 }) {
   return (
-    <div className={cn("relative overflow-hidden rounded-[1.75rem] p-5 text-white shadow-[0_16px_40px_rgba(15,23,42,0.15)]", `bg-gradient-to-br ${accent}`)}>
+    <div className={cn("relative overflow-hidden rounded-[1.75rem] p-5 text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.12)]", accent)}>
       <div className="pointer-events-none absolute -right-6 -top-6 h-28 w-28 rounded-full bg-white/15 blur-2xl" />
-      <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-white/60">{label}</p>
+      <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-foreground/60">{label}</p>
       <p className="mt-2 text-5xl font-black leading-none tracking-tight">{value}</p>
-      <p className="mt-2 text-xs text-white/65">{sub}</p>
+      <p className="mt-2 text-xs text-foreground/65">{sub}</p>
     </div>
   );
 }
@@ -110,14 +110,14 @@ function AlertCard({
       !isActionable && "opacity-70",
     )}>
       {/* Left accent stripe */}
-      <div className={cn("absolute bottom-0 left-0 top-0 w-1 rounded-l-[1.75rem] bg-gradient-to-b", type.gradient)} />
+      <div className={cn("absolute bottom-0 left-0 top-0 w-1 rounded-l-[1.75rem]", type.tone)} />
 
       <div className="flex flex-col gap-4 pl-4 sm:flex-row sm:items-start sm:justify-between">
         {/* Left: info */}
         <div className="flex min-w-0 flex-1 gap-4">
           {/* Icon bubble */}
-          <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br", type.gradient)}>
-            <Icon className="h-5 w-5 text-white" />
+          <div className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl", type.tone)}>
+            <Icon className="h-5 w-5 text-foreground" />
           </div>
 
           <div className="min-w-0 flex-1 space-y-1">
@@ -147,14 +147,14 @@ function AlertCard({
           <div className="flex shrink-0 gap-2 sm:flex-col">
             <button
               onClick={() => onResolve(alert.id)}
-              className="flex items-center gap-1.5 rounded-2xl bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-200 transition-colors hover:bg-emerald-100"
+              className="flex items-center gap-1.5 rounded-2xl bg-brand-green/18 px-4 py-2 text-xs font-semibold text-foreground ring-1 ring-foreground/10 transition-colors hover:bg-brand-green/24"
             >
               <CheckCircle2 className="h-3.5 w-3.5" />
               Resolver
             </button>
             <button
               onClick={() => onDismiss(alert.id)}
-              className="flex items-center gap-1.5 rounded-2xl bg-slate-50 px-4 py-2 text-xs font-semibold text-slate-600 ring-1 ring-slate-200 transition-colors hover:bg-slate-100"
+              className="flex items-center gap-1.5 rounded-2xl bg-brand-purple/12 px-4 py-2 text-xs font-semibold text-foreground ring-1 ring-foreground/10 transition-colors hover:bg-brand-purple/18"
             >
               <XCircle className="h-3.5 w-3.5" />
               Descartar
@@ -248,25 +248,25 @@ export function AlertsClient({ alerts: initial }: { alerts: Alert[] }) {
           label="Alertas abiertas"
           value={open}
           sub="Requieren atención inmediata"
-          accent="from-rose-500 via-fuchsia-500 to-rose-400"
+          accent="bg-brand-coral/28"
         />
         <StatCard
           label="No marcación"
           value={missing}
           sub="Colaboradores sin check-in"
-          accent="from-amber-400 via-orange-400 to-amber-300"
+          accent="bg-brand-yellow/38"
         />
         <StatCard
           label="Tendencia negativa"
           value={negTrend}
           sub="Áreas o personas en riesgo"
-          accent="from-orange-500 via-rose-400 to-pink-400"
+          accent="bg-brand-purple/22"
         />
         <StatCard
           label="Resueltas"
           value={resolved}
           sub="En el periodo activo"
-          accent="from-emerald-500 via-teal-400 to-cyan-400"
+          accent="bg-brand-green/30"
         />
       </div>
 

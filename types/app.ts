@@ -52,6 +52,33 @@ export type Employee = {
   employment_status: "active" | "inactive";
 };
 
+export type EmployeeDirectoryRecord = {
+  id: string;
+  company_id: string;
+  employee_code: string | null;
+  full_name: string;
+  email: string;
+  employment_status: string;
+  role: Role;
+  job_title: string | null;
+  occupational_group: string | null;
+  location_id: string | null;
+  location_name: string | null;
+  org_unit_id: string | null;
+  org_unit_name: string | null;
+  manager_id: string | null;
+  manager_name: string | null;
+  hire_date: string | null;
+  tenure_years: number | null;
+  is_leader: boolean;
+};
+
+export type EmployeeIntakeOptions = {
+  locations: Array<{ id: string; name: string }>;
+  orgUnits: Array<{ id: string; name: string }>;
+  managers: Array<{ id: string; name: string }>;
+};
+
 export type EmployeeProfile = {
   employee_id: string;
   phone: string;
@@ -71,6 +98,101 @@ export type MoodCheckin = {
   anonymous: boolean;
   request_meeting: boolean;
   checked_at: string;
+};
+
+export type SurveyQuestionType = "single_choice" | "multi_choice" | "scale" | "text";
+
+export type SurveyQuestion = {
+  id: string;
+  survey_id: string;
+  question_text: string;
+  question_type: SurveyQuestionType;
+  dimension: string | null;
+  sort_order: number;
+  required: boolean;
+  options: Array<string | number> | null;
+};
+
+export type SurveyCampaign = {
+  id: string;
+  company_id: string;
+  title: string;
+  description: string | null;
+  is_anonymous: boolean;
+  active: boolean;
+  start_date: string | null;
+  end_date: string | null;
+  target_scope: string | null;
+  created_by: string | null;
+  created_at: string;
+  questions: SurveyQuestion[];
+};
+
+export type SurveyQuestionResponseDetail = {
+  id: string;
+  submitted_at: string;
+  responder_label: string;
+  anonymity_mode: "identified" | "anonymous";
+  response_text: string | null;
+  response_numeric: number | null;
+};
+
+export type SurveyQuestionInsight = {
+  question_id: string;
+  question_text: string;
+  question_type: SurveyQuestionType;
+  dimension: string | null;
+  required: boolean;
+  response_count: number;
+  average_score: number | null;
+  score_distribution: ChartPoint[];
+  responses: SurveyQuestionResponseDetail[];
+};
+
+export type SurveyResultSummary = {
+  survey_id: string;
+  title: string;
+  description: string | null;
+  start_date: string | null;
+  end_date: string | null;
+  is_anonymous: boolean;
+  assigned_count: number;
+  submitted_count: number;
+  pending_count: number;
+  participation_rate: number;
+  response_count: number;
+  average_score: number | null;
+  latest_response_at: string | null;
+  questions: SurveyQuestionInsight[];
+};
+
+export type SurveyAssignmentStatus = "scheduled" | "pending" | "submitted";
+
+export type SurveyAssignment = {
+  id: string;
+  survey_id: string;
+  company_id: string;
+  employee_id: string;
+  status: SurveyAssignmentStatus;
+  scheduled_for: string;
+  submitted_at: string | null;
+};
+
+export type SurveyInboxItem = SurveyCampaign & {
+  assignment_id: string | null;
+  assignment_status: SurveyAssignmentStatus | null;
+  scheduled_for: string | null;
+  submitted_at: string | null;
+  participation_rate: number;
+  assigned_count: number;
+  submitted_count: number;
+};
+
+export type SurveyWorkspace = {
+  inbox: SurveyInboxItem[];
+  created: SurveyInboxItem[];
+  results: SurveyResultSummary[];
+  canManage: boolean;
 };
 
 export type Alert = {
@@ -180,6 +302,32 @@ export type DashboardSnapshot = {
     score: number;
     anonymous: boolean;
   }>;
+};
+
+export type AreaEmployeeCheckin = {
+  id: string;
+  date: string;
+  score: number;
+  anonymous: boolean;
+};
+
+export type AreaEmployeeMoodRow = {
+  id: string;
+  employee: string;
+  jobTitle: string | null;
+  orgUnit: string | null;
+  location: string | null;
+  averageMood: number | null;
+  latestMood: number | null;
+  latestCheckinDate: string | null;
+  checkins: AreaEmployeeCheckin[];
+};
+
+export type AreaDashboardDetail = {
+  area: AreaMoodPoint;
+  totalEmployeesInScope: number;
+  employees: AreaEmployeeMoodRow[];
+  anonymousCheckins: AreaEmployeeCheckin[];
 };
 
 export type AppUser = {

@@ -21,11 +21,11 @@ export function BarChartCard({ title, data }: { title: string; data: ChartPoint[
         {mounted ? (
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e9e1d6" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgb(var(--foreground) / 0.12)" />
               <XAxis dataKey="label" />
               <YAxis domain={[0, 5]} />
               <Tooltip />
-              <Bar dataKey="value" fill="#e68a4f" radius={[10, 10, 0, 0]} />
+              <Bar dataKey="value" fill="rgb(var(--brand-coral))" radius={[10, 10, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : null}

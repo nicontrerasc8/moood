@@ -84,6 +84,67 @@ export type Database = {
           checked_at: string;
         };
       };
+      surveys: {
+        Row: {
+          id: string;
+          company_id: string;
+          title: string;
+          description: string | null;
+          is_anonymous: boolean;
+          active: boolean;
+          start_date: string | null;
+          end_date: string | null;
+          target_scope: string | null;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      survey_questions: {
+        Row: {
+          id: string;
+          survey_id: string;
+          question_text: string;
+          question_type: string;
+          dimension: string | null;
+          sort_order: number;
+          required: boolean;
+          options: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      survey_responses: {
+        Row: {
+          id: string;
+          survey_id: string;
+          question_id: string;
+          company_id: string;
+          employee_id: string | null;
+          org_unit_id: string | null;
+          location_id: string | null;
+          response_text: string | null;
+          response_numeric: number | null;
+          response_json: Json | null;
+          submitted_at: string;
+          anonymity_mode: string;
+          created_at: string;
+          updated_at: string;
+        };
+      };
+      survey_assignments: {
+        Row: {
+          id: string;
+          survey_id: string;
+          company_id: string;
+          employee_id: string;
+          status: string;
+          scheduled_for: string;
+          submitted_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+      };
       alert_rules: {
         Row: {
           id: string;

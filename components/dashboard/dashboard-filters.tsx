@@ -102,17 +102,6 @@ export function DashboardFilters({ value, onApply, isLoading = false }: Dashboar
 
             <select
               className="h-10 rounded-2xl border bg-background px-3 text-sm"
-              value={draft.companyId}
-              onChange={updateField("companyId")}
-            >
-              <option value="">Empresa</option>
-              {options?.companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-
-            <select
-              className="h-10 rounded-2xl border bg-background px-3 text-sm"
               value={draft.locationId}
               onChange={updateField("locationId")}
             >

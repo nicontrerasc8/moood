@@ -2,17 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, Building2, Compass, LayoutDashboard, MapPinned, Settings2, SmilePlus, Users } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, Building2, ClipboardList, LayoutDashboard, Settings2, SmilePlus, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/types/app";
 
 const items = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, minimumRole: "leader" as Role },
   { href: "/mood", label: "Mood", icon: SmilePlus, minimumRole: "employee" as Role },
+  { href: "/surveys", label: "Encuestas", icon: ClipboardList, minimumRole: "employee" as Role },
   { href: "/alerts", label: "Alertas", icon: AlertTriangle, minimumRole: "leader" as Role },
-  { href: "/geography", label: "Geografia", icon: MapPinned, minimumRole: "leader" as Role },
-  { href: "/structure", label: "Estructura", icon: Compass, minimumRole: "leader" as Role },
   { href: "/employees", label: "Empleados", icon: Users, minimumRole: "hr_admin" as Role },
   { href: "/settings", label: "Configuracion", icon: Settings2, minimumRole: "hr_admin" as Role },
 ];

@@ -30,14 +30,14 @@ export function Topbar({ user }: { user: AppUser }) {
         </form>
 
         <div className="flex items-center gap-3 rounded-full border border-white/80 bg-white/92 px-3 py-2 shadow-sm">
-          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-[linear-gradient(135deg,#8E3B8F_0%,#74C1B3_100%)] text-sm font-semibold text-white">
+          <div className="bg-brand-contrast flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold text-white">
             {initials}
           </div>
 
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <p className="truncate text-sm font-semibold text-foreground">{user.full_name}</p>
-              <Badge className="rounded-full border-0 bg-[#F4B233]/20 px-2.5 py-0.5 text-[11px] font-medium capitalize text-[#8E3B8F] hover:bg-[#F4B233]/20">
+              <Badge className="rounded-full border-0 bg-brand-yellow/20 px-2.5 py-0.5 text-[11px] font-medium capitalize text-foreground hover:bg-brand-yellow/20">
                 {user.role.replace("_", " ")}
               </Badge>
             </div>

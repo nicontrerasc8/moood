@@ -60,6 +60,32 @@ values
   ('9b355f5d-330f-40ab-b3df-4ba4a3600002', '9b355f5d-330f-40ab-b3df-4ba4a3500001', 'Que deberiamos mejorar?', 'text', 'feedback', 2, null)
 on conflict (id) do nothing;
 
+insert into public.survey_assignments (id, survey_id, company_id, employee_id, status, scheduled_for, submitted_at)
+values
+  ('9b355f5d-330f-40ab-b3df-4ba4a3650001', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300001', 'pending', current_date - 7, null),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3650002', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', 'submitted', current_date - 7, now() - interval '2 days'),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3650003', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300003', 'pending', current_date - 7, null)
+on conflict (survey_id, employee_id) do nothing;
+
+insert into public.survey_responses (
+  id,
+  survey_id,
+  question_id,
+  company_id,
+  employee_id,
+  org_unit_id,
+  location_id,
+  response_text,
+  response_numeric,
+  response_json,
+  submitted_at,
+  anonymity_mode
+)
+values
+  ('9b355f5d-330f-40ab-b3df-4ba4a3660001', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100001', null, 4, '4'::jsonb, now() - interval '2 days', 'anonymous'),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3660002', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100001', 'Mantener el ritmo de feedback del lider.', null, null, now() - interval '2 days', 'anonymous')
+on conflict (id) do nothing;
+
 insert into public.alert_rules (
   id,
   company_id,

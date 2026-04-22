@@ -3,16 +3,16 @@ import type { Kpi } from "@/types/app";
 
 const toneStyles = {
   positive: {
-    delta: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200",
-    dot: "bg-emerald-400",
+    delta: "bg-brand-green/18 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-green",
   },
   negative: {
-    delta: "bg-rose-50 text-rose-700 ring-1 ring-rose-200",
-    dot: "bg-rose-400",
+    delta: "bg-brand-coral/14 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-coral",
   },
   neutral: {
-    delta: "bg-amber-50 text-amber-700 ring-1 ring-amber-200",
-    dot: "bg-amber-400",
+    delta: "bg-brand-yellow/18 text-foreground ring-1 ring-foreground/10",
+    dot: "bg-brand-yellow",
   },
 };
 

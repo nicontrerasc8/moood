@@ -1,33 +1,42 @@
 import { connection } from "next/server";
-import { ModuleHeader } from "@/components/layout/module-header";
+import { EmployeeIntakeForm } from "@/components/employees/employee-intake-form";
 import { EmployeeTable } from "@/components/employees/employee-table";
+import { ModuleHeader } from "@/components/layout/module-header";
 import { requireRole } from "@/lib/auth/session";
-import { getEmployees } from "@/lib/queries/moood";
+import { getEmployees, getFilterOptions } from "@/lib/queries/moood";
 
 export default async function EmployeesPage() {
   await connection();
   const user = await requireRole("hr_admin");
-  const employeeList = await getEmployees(user);
+  const [employeeList, filterOptions] = await Promise.all([
+    getEmployees(user),
+    getFilterOptions(user),
+  ]);
+
+  const intakeOptions = {
+    locations: filterOptions.locations.map((location) => ({
+      id: location.id,
+      name: location.site_name,
+    })),
+    orgUnits: filterOptions.orgUnits.map((orgUnit) => ({
+      id: orgUnit.id,
+      name: orgUnit.name,
+    })),
+    managers: employeeList.map((employee) => ({
+      id: employee.id,
+      name: employee.full_name,
+    })),
+  };
 
   return (
     <div className="space-y-6">
       <ModuleHeader
         eyebrow="Empleados"
         title="Maestro de colaboradores"
-        description="Listado, filtros, perfil laboral, asignación de unidad, sede y manager. Preparado para importación CSV."
+        description="Alta manual de nuevas personas, creacion de cuenta y directorio laboral completo en un solo espacio."
       />
-      <div className="grid gap-4 md:grid-cols-4">
-        <select className="h-10 rounded-2xl border bg-white px-3 text-sm">
-          <option>Ubicación</option>
-        </select>
-        <select className="h-10 rounded-2xl border bg-white px-3 text-sm">
-          <option>Unidad</option>
-        </select>
-        <select className="h-10 rounded-2xl border bg-white px-3 text-sm">
-          <option>Rol</option>
-        </select>
-        <button className="rounded-2xl bg-primary px-4 py-2 text-sm text-primary-foreground">Importar CSV</button>
-      </div>
+
+      <EmployeeIntakeForm options={intakeOptions} />
       <EmployeeTable employees={employeeList} />
     </div>
   );

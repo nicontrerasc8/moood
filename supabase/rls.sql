@@ -7,6 +7,7 @@ alter table public.mood_checkins enable row level security;
 alter table public.surveys enable row level security;
 alter table public.survey_questions enable row level security;
 alter table public.survey_responses enable row level security;
+alter table public.survey_assignments enable row level security;
 alter table public.alert_rules enable row level security;
 alter table public.alerts enable row level security;
 alter table public.notification_logs enable row level security;
@@ -130,6 +131,24 @@ with check (
     or anonymity_mode = 'anonymous'
   )
 );
+
+drop policy if exists "survey assignments read scoped" on public.survey_assignments;
+create policy "survey assignments read scoped"
+on public.survey_assignments for select
+using (
+  public.current_app_role() = 'super_admin'
+  or employee_id = public.current_employee_id()
+  or (
+    public.is_hr_or_super()
+    and company_id = public.current_company_id()
+  )
+);
+
+drop policy if exists "survey assignments manage hr" on public.survey_assignments;
+create policy "survey assignments manage hr"
+on public.survey_assignments for all
+using (public.is_hr_or_super())
+with check (public.is_hr_or_super());
 
 drop policy if exists "alert rules read company" on public.alert_rules;
 create policy "alert rules read company"

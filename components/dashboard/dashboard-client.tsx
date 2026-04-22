@@ -13,11 +13,11 @@ import type { DashboardFilters as DashboardFiltersType, DashboardSnapshot, Chart
 function MoodBar({ label, value, max = 5 }: { label: string; value: number; max?: number }) {
   const pct = Math.round((value / max) * 100);
   const color =
-    value >= 4.3 ? "bg-emerald-400" :
-    value >= 3.7 ? "bg-lime-400" :
-    value >= 3   ? "bg-amber-400" :
-    value >= 2   ? "bg-orange-400" :
-                   "bg-rose-500";
+    value >= 4.3 ? "bg-brand-green" :
+    value >= 3.7 ? "bg-brand-teal" :
+    value >= 3   ? "bg-brand-yellow" :
+    value >= 2   ? "bg-brand-coral" :
+                   "bg-brand-purple";
 
   return (
     <div className="flex items-center gap-3">
@@ -35,10 +35,10 @@ function ScoreDistBar({ label, value, total }: { label: string; value: number; t
   const scoreNum = Number(label);
   const emoji = scoreNum === 5 ? "😄" : scoreNum === 4 ? "😊" : scoreNum === 3 ? "😐" : scoreNum === 2 ? "😟" : "😢";
   const color =
-    scoreNum >= 4 ? "bg-emerald-400" :
-    scoreNum === 3 ? "bg-amber-400" :
-    scoreNum === 2 ? "bg-orange-400" :
-                     "bg-rose-500";
+    scoreNum >= 4 ? "bg-brand-green" :
+    scoreNum === 3 ? "bg-brand-yellow" :
+    scoreNum === 2 ? "bg-brand-coral" :
+                     "bg-brand-purple";
 
   return (
     <div className="flex items-center gap-3">
@@ -70,16 +70,10 @@ function MiniTimeSeries({ points }: { points: TimeSeriesPoint[] }) {
   return (
     <div className="space-y-3">
       <svg viewBox={`0 0 100 100`} preserveAspectRatio="none" className="h-28 w-full">
-        <defs>
-          <linearGradient id="moodGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <path d={areaD} fill="url(#moodGrad)" />
-        <path d={pathD} fill="none" stroke="#10b981" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+        <path d={areaD} fill="rgb(var(--brand-teal))" fillOpacity="0.12" />
+        <path d={pathD} fill="none" stroke="rgb(var(--brand-teal))" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
         {points.map((p, i) => (
-          <circle key={i} cx={i * w} cy={toY(p.mood)} r="2.5" fill="#10b981" vectorEffect="non-scaling-stroke" />
+          <circle key={i} cx={i * w} cy={toY(p.mood)} r="2.5" fill="rgb(var(--brand-teal))" vectorEffect="non-scaling-stroke" />
         ))}
       </svg>
       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
@@ -134,11 +128,11 @@ function BreakdownGrid({ data }: { data: { label: string; points: ChartPoint[] }
 
 const scoreEmoji: Record<number, string> = { 1: "😢", 2: "😟", 3: "😐", 4: "😊", 5: "😄" };
 const scoreColor: Record<number, string> = {
-  1: "bg-rose-100 text-rose-700",
-  2: "bg-orange-100 text-orange-700",
-  3: "bg-amber-100 text-amber-700",
-  4: "bg-lime-100 text-lime-700",
-  5: "bg-emerald-100 text-emerald-700",
+  1: "bg-brand-purple/16 text-foreground",
+  2: "bg-brand-coral/14 text-foreground",
+  3: "bg-brand-yellow/18 text-foreground",
+  4: "bg-brand-teal/16 text-foreground",
+  5: "bg-brand-green/18 text-foreground",
 };
 
 function DetailTable({ rows }: { rows: DashboardSnapshot["detailedRows"] }) {

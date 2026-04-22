@@ -25,7 +25,13 @@ export function AuthMessage({
   }
 
   return (
-    <div className={error ? "rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700" : "rounded-2xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700"}>
+    <div
+      className={
+        error
+          ? "rounded-2xl bg-brand-coral/12 px-4 py-3 text-sm text-foreground"
+          : "rounded-2xl bg-brand-green/18 px-4 py-3 text-sm text-foreground"
+      }
+    >
       {text}
     </div>
   );

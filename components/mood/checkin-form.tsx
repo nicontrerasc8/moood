@@ -8,60 +8,60 @@ const moods = [
     label: "MUY BIEN",
     sublabel: "Radiante y lleno de energía",
     emoji: "😄",
-    color: "#F5B942",
-    bg: "linear-gradient(135deg, #FFF3C4 0%, #FFE082 100%)",
-    pill: "#F5B942",
-    glow: "rgba(245,185,66,0.35)",
-    text: "#7A4A00",
-    ring: "#F5B942",
+    color: "#F4B233",
+    bg: "rgb(var(--brand-yellow) / 0.22)",
+    pill: "#F4B233",
+    glow: "rgb(var(--brand-yellow) / 0.32)",
+    text: "#000000",
+    ring: "#F4B233",
   },
   {
     value: "good",
     label: "BIEN",
     sublabel: "Con buen ánimo y tranquilo",
     emoji: "😊",
-    color: "#5BBD72",
-    bg: "linear-gradient(135deg, #D4F5DC 0%, #A8E6B4 100%)",
-    pill: "#5BBD72",
-    glow: "rgba(91,189,114,0.35)",
-    text: "#1B5E30",
-    ring: "#5BBD72",
+    color: "#8CDC63",
+    bg: "rgb(var(--brand-green) / 0.22)",
+    pill: "#8CDC63",
+    glow: "rgb(var(--brand-green) / 0.3)",
+    text: "#000000",
+    ring: "#8CDC63",
   },
   {
     value: "normal",
     label: "NORMAL",
     sublabel: "Ni bien ni mal, neutro",
     emoji: "😐",
-    color: "#3BAFB2",
-    bg: "linear-gradient(135deg, #D0F4F4 0%, #9DE4E6 100%)",
-    pill: "#3BAFB2",
-    glow: "rgba(59,175,178,0.35)",
-    text: "#0D4B4D",
-    ring: "#3BAFB2",
+    color: "#7ED3CB",
+    bg: "rgb(var(--brand-teal) / 0.22)",
+    pill: "#7ED3CB",
+    glow: "rgb(var(--brand-teal) / 0.28)",
+    text: "#000000",
+    ring: "#7ED3CB",
   },
   {
     value: "bad",
     label: "MAL",
     sublabel: "Me siento algo apagado",
     emoji: "😟",
-    color: "#E8614F",
-    bg: "linear-gradient(135deg, #FFE0DC 0%, #FFBDB5 100%)",
-    pill: "#E8614F",
-    glow: "rgba(232,97,79,0.35)",
-    text: "#6A1E10",
-    ring: "#E8614F",
+    color: "#F5525A",
+    bg: "rgb(var(--brand-coral) / 0.2)",
+    pill: "#F5525A",
+    glow: "rgb(var(--brand-coral) / 0.28)",
+    text: "#000000",
+    ring: "#F5525A",
   },
   {
     value: "very_bad",
     label: "MUY MAL",
     sublabel: "Difícil, necesito apoyo",
     emoji: "😢",
-    color: "#9B72CC",
-    bg: "linear-gradient(135deg, #EDE0FF 0%, #D5BAFF 100%)",
-    pill: "#9B72CC",
-    glow: "rgba(155,114,204,0.35)",
-    text: "#3A1566",
-    ring: "#9B72CC",
+    color: "#8E3B8F",
+    bg: "rgb(var(--brand-purple) / 0.2)",
+    pill: "#8E3B8F",
+    glow: "rgb(var(--brand-purple) / 0.28)",
+    text: "#000000",
+    ring: "#8E3B8F",
   },
 ] as const;
 
@@ -72,6 +72,8 @@ export function CheckinForm() {
   const [submitted, setSubmitted] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -79,14 +81,42 @@ export function CheckinForm() {
 
   const selectedMood = moods.find((m) => m.value === selected) ?? null;
 
-  function handleSubmit() {
-    if (!selectedMood) return;
-    setSubmitted(true);
+  async function handleSubmit() {
+    if (!selectedMood || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/mood/checkin", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ mood: selectedMood.value }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => null);
+        throw new Error(body?.details || body?.error || "No se pudo guardar tu check-in.");
+      }
+
+      setSubmitted(true);
+    } catch (submissionError) {
+      setError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : "No se pudo guardar tu check-in.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function resetForm() {
     setSelected(null);
     setSubmitted(false);
+    setError(null);
   }
 
   if (submitted && selectedMood) {
@@ -124,9 +154,9 @@ export function CheckinForm() {
     <div
       className={`checkin-card main-card ${mounted ? "mounted" : ""}`}
       style={{
-        "--mood-color": activeMood?.color ?? "#CBD5E1",
-        "--mood-glow": activeMood?.glow ?? "rgba(203,213,225,0.2)",
-        "--mood-bg": activeMood?.bg ?? "linear-gradient(135deg,#F8FAFC 0%,#F1F5F9 100%)",
+        "--mood-color": activeMood?.color ?? "rgb(var(--brand-teal))",
+        "--mood-glow": activeMood?.glow ?? "rgb(var(--brand-teal) / 0.18)",
+        "--mood-bg": activeMood?.bg ?? "rgb(var(--brand-teal) / 0.08)",
       } as React.CSSProperties}
     >
       <style>{styles}</style>
@@ -186,17 +216,18 @@ export function CheckinForm() {
 
       {/* Submit */}
       <div className="card-footer">
+        {error ? <p className="submit-error">{error}</p> : null}
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!selectedMood}
+          disabled={!selectedMood || isSubmitting}
           className={`submit-btn ${selectedMood ? "submit-active" : ""}`}
           style={{
-            "--submit-color": selectedMood?.color ?? "#94A3B8",
-            "--submit-glow": selectedMood?.glow ?? "rgba(148,163,184,0.3)",
+            "--submit-color": selectedMood?.color ?? "rgb(var(--brand-teal) / 0.2)",
+            "--submit-glow": selectedMood?.glow ?? "rgb(var(--brand-teal) / 0.22)",
           } as React.CSSProperties}
         >
-          <span>Registrar estado</span>
+          <span>{isSubmitting ? "Guardando..." : "Registrar estado"}</span>
           <svg viewBox="0 0 20 20" fill="none" className="submit-arrow">
             <path d="M4 10h12M11 5l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
@@ -217,11 +248,11 @@ const styles = `
     margin: 0 auto;
     border-radius: 2.5rem;
     overflow: hidden;
-    background: #FDFAF6;
+    background: rgb(var(--background));
     border: 1.5px solid rgba(0,0,0,0.07);
     box-shadow:
       0 2px 0 rgba(255,255,255,0.9) inset,
-      0 30px 60px rgba(15,23,42,0.10),
+      0 30px 60px rgba(0,0,0,0.10),
       0 0 0 0px var(--mood-color);
     transition: box-shadow 0.4s ease;
   }
@@ -243,7 +274,7 @@ const styles = `
     width: 280px;
     height: 280px;
     border-radius: 50%;
-    background: var(--mood-bg, linear-gradient(135deg,#F8FAFC,#E2E8F0));
+    background: var(--mood-bg, rgb(var(--brand-teal) / 0.12));
     opacity: 0.55;
     transition: background 0.5s ease, opacity 0.4s ease;
     filter: blur(48px);
@@ -270,7 +301,7 @@ const styles = `
     width: 7px;
     height: 7px;
     border-radius: 50%;
-    background: var(--mood-color, #CBD5E1);
+    background: var(--mood-color, rgb(var(--brand-teal)));
     transition: background 0.4s ease;
     box-shadow: 0 0 0 3px var(--mood-glow, transparent);
   }
@@ -280,14 +311,14 @@ const styles = `
     font-weight: 700;
     letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #94A3B8;
+    color: rgba(0,0,0,0.55);
   }
 
   .card-title {
     font-size: clamp(1.6rem, 5vw, 2rem);
     font-weight: 800;
     line-height: 1.2;
-    color: #0F172A;
+    color: rgb(var(--foreground));
     margin: 0 0 0.6rem;
     letter-spacing: -0.02em;
   }
@@ -295,7 +326,7 @@ const styles = `
   .card-sub {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.875rem;
-    color: #64748B;
+    color: rgba(0,0,0,0.68);
     margin: 0;
     line-height: 1.6;
   }
@@ -429,6 +460,14 @@ const styles = `
     padding: 1.25rem 1.25rem 1.75rem;
   }
 
+  .submit-error {
+    margin: 0 0 0.75rem;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    color: rgb(var(--brand-coral));
+    text-align: center;
+  }
+
   .submit-btn {
     width: 100%;
     display: flex;
@@ -443,8 +482,8 @@ const styles = `
     font-weight: 700;
     letter-spacing: 0.06em;
     cursor: pointer;
-    background: #E2E8F0;
-    color: #94A3B8;
+    background: rgb(var(--brand-teal) / 0.16);
+    color: rgba(0,0,0,0.55);
     transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
     box-shadow: none;
   }
@@ -487,7 +526,7 @@ const styles = `
     align-items: center;
     justify-content: center;
     min-height: 420px;
-    background: #FDFAF6;
+    background: rgb(var(--background));
   }
 
   .confirm-inner {
@@ -552,7 +591,7 @@ const styles = `
   .confirm-sub {
     font-family: 'DM Sans', sans-serif;
     font-size: 0.9rem;
-    color: #64748B;
+    color: rgba(0,0,0,0.68);
     margin: 0;
     max-width: 240px;
     line-height: 1.65;

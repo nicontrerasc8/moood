@@ -3,8 +3,7 @@ import type { GeographySummary } from "@/types/app";
 
 export function LocationMap({ points }: { points: GeographySummary[] }) {
   return (
-    <div className="relative overflow-hidden rounded-[2rem] border bg-[#163f38] p-6 text-white shadow-sm">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_30%),radial-gradient(circle_at_bottom_right,rgba(255,176,96,0.2),transparent_30%)]" />
+    <div className="bg-brand-contrast relative overflow-hidden rounded-[2rem] border p-6 text-white shadow-sm shadow-black/10">
       <div className="relative">
         <div className="mb-6 flex items-center justify-between">
           <div>
@@ -27,10 +26,10 @@ export function LocationMap({ points }: { points: GeographySummary[] }) {
                   className={cn(
                     "absolute flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border text-xs font-semibold shadow-lg",
                     point.averageMood >= 4
-                      ? "border-emerald-200 bg-emerald-300/80 text-emerald-950"
+                      ? "border-white/30 bg-brand-green/80 text-foreground"
                       : point.averageMood >= 3.5
-                        ? "border-amber-100 bg-amber-300/80 text-amber-950"
-                        : "border-rose-100 bg-rose-300/80 text-rose-950",
+                        ? "border-white/30 bg-brand-yellow/80 text-foreground"
+                        : "border-white/30 bg-brand-coral/80 text-foreground",
                   )}
                   style={{
                     left: `${20 + index * 20}%`,

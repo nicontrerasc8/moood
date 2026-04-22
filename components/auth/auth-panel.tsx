@@ -112,7 +112,7 @@ export function AuthPanel({
   return (
     <main className="grid min-h-screen lg:grid-cols-[0.9fr_1.1fr]">
       {/* ── Left panel ── */}
-      <section className="relative hidden overflow-hidden bg-[linear-gradient(160deg,#8E3B8F_0%,#F5525A_55%,#F4B233_100%)] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+      <section className="bg-brand-warm relative hidden overflow-hidden p-10 text-white lg:flex lg:flex-col lg:justify-between">
         {/* Decorative background SVG */}
         <MoodOrbs />
 
@@ -138,24 +138,18 @@ export function AuthPanel({
       </section>
 
       {/* ── Right panel ── */}
-      <section className="flex items-center justify-center bg-gradient-to-br from-rose-50/40 via-white to-amber-50/30 px-6 py-10">
-        {/* Subtle background circles for the right side */}
-        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-30 hidden lg:block">
-          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-[#F5525A]/8 blur-3xl" />
-          <div className="absolute bottom-0 right-0 h-56 w-56 rounded-full bg-[#F4B233]/10 blur-2xl" />
-        </div>
-
-        <Card className="relative w-full max-w-md rounded-[2rem] border-white/70 bg-white/92 shadow-xl shadow-rose-100/40 backdrop-blur-sm">
+      <section className="bg-brand-paper flex items-center justify-center px-6 py-10">
+        <Card className="relative w-full max-w-md rounded-[2rem] border-white/70 bg-white/92 shadow-xl shadow-black/10 backdrop-blur-sm">
           <CardContent className="space-y-6 p-8">
             {/* Card accent line */}
-            <div className="h-1 w-12 rounded-full bg-gradient-to-r from-[#8E3B8F] via-[#F5525A] to-[#F4B233]" />
+            <div className="h-1 w-12 rounded-full bg-brand-coral" />
 
             <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-[#F5525A] font-medium">
+              <p className="text-brand-coral text-xs font-medium uppercase tracking-[0.24em]">
                 {eyebrow}
               </p>
-              <h2 className="mt-2 text-3xl font-semibold text-gray-900">{title}</h2>
-              <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{description}</p>
+              <h2 className="mt-2 text-3xl font-semibold text-foreground">{title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground/70">{description}</p>
             </div>
 
             {children}

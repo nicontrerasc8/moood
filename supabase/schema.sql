@@ -219,6 +219,23 @@ create table public.survey_responses (
   constraint survey_responses_location_id_fkey foreign key (location_id) references public.locations(id)
 );
 
+create table public.survey_assignments (
+  id uuid not null default uuid_generate_v4(),
+  survey_id uuid not null,
+  company_id uuid not null,
+  employee_id uuid not null,
+  status text not null default 'scheduled' check (status in ('scheduled', 'pending', 'submitted')),
+  scheduled_for date not null,
+  submitted_at timestamptz,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint survey_assignments_pkey primary key (id),
+  constraint survey_assignments_survey_id_fkey foreign key (survey_id) references public.surveys(id) on delete cascade,
+  constraint survey_assignments_company_id_fkey foreign key (company_id) references public.companies(id),
+  constraint survey_assignments_employee_id_fkey foreign key (employee_id) references public.employees(id),
+  constraint survey_assignments_unique_employee unique (survey_id, employee_id)
+);
+
 create table public.alert_rules (
   id uuid not null default uuid_generate_v4(),
   company_id uuid not null,
