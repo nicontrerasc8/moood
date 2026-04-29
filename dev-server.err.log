@@ -1,0 +1,11 @@
+[supabase.updateSession] Failed to resolve auth user from cookies {
+  pathname: '/dashboard',
+  message: 'Auth session missing!',
+  status: 400
+}
+[supabase.updateSession] Missing session on protected route { pathname: '/dashboard' }
+[supabase.updateSession] Failed to resolve auth user from cookies {
+  pathname: '/auth/login',
+  message: 'Auth session missing!',
+  status: 400
+}

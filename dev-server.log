@@ -13,3 +13,4 @@ Creating turbopack project {
   testMode: true
 }
 ✓ Ready in 2.9s
+ GET /auth/login 200 in 2.9s (compile: 2.5s, proxy.ts: 14ms, render: 470ms)
