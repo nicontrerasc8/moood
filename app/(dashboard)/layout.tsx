@@ -1,4 +1,5 @@
 import { connection } from "next/server";
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { signOutAction } from "@/lib/auth/actions";
@@ -7,6 +8,10 @@ import { requireUser } from "@/lib/auth/session";
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   await connection();
   const user = await requireUser();
+
+  if (user.is_platform_admin) {
+    redirect("/admin");
+  }
 
   if (user.role === "employee") {
     return (

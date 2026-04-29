@@ -6,7 +6,7 @@ import { getOrgTree } from "@/lib/queries/moood";
 
 export default async function StructurePage() {
   await connection();
-  const user = await requireRole("leader");
+  const user = await requireRole("hr_admin");
   const tree = await getOrgTree(user);
 
   return (

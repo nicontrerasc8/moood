@@ -1,4 +1,5 @@
 alter table public.companies enable row level security;
+alter table public.admins enable row level security;
 alter table public.locations enable row level security;
 alter table public.org_units enable row level security;
 alter table public.employees enable row level security;
@@ -20,6 +21,17 @@ using (
   or id = public.current_company_id()
 );
 
+drop policy if exists "companies manage by platform admin" on public.companies;
+create policy "companies manage by platform admin"
+on public.companies for all
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
+
+drop policy if exists "admins read self" on public.admins;
+create policy "admins read self"
+on public.admins for select
+using (auth_user_id = auth.uid() and active = true);
+
 drop policy if exists "locations read by company scope" on public.locations;
 create policy "locations read by company scope"
 on public.locations for select
@@ -27,6 +39,12 @@ using (
   public.current_app_role() = 'super_admin'
   or company_id = public.current_company_id()
 );
+
+drop policy if exists "locations manage by platform admin" on public.locations;
+create policy "locations manage by platform admin"
+on public.locations for all
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
 
 drop policy if exists "org units read by company scope" on public.org_units;
 create policy "org units read by company scope"
@@ -36,10 +54,22 @@ using (
   or company_id = public.current_company_id()
 );
 
+drop policy if exists "org units manage by platform admin" on public.org_units;
+create policy "org units manage by platform admin"
+on public.org_units for all
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
+
 drop policy if exists "employees read by role scope" on public.employees;
 create policy "employees read by role scope"
 on public.employees for select
 using (public.can_view_employee(id));
+
+drop policy if exists "employees manage by platform admin" on public.employees;
+create policy "employees manage by platform admin"
+on public.employees for all
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
 
 drop policy if exists "employees self update" on public.employees;
 create policy "employees self update"
@@ -51,6 +81,12 @@ drop policy if exists "profiles read by role scope" on public.employee_profiles;
 create policy "profiles read by role scope"
 on public.employee_profiles for select
 using (public.can_view_employee(employee_id));
+
+drop policy if exists "profiles manage by platform admin" on public.employee_profiles;
+create policy "profiles manage by platform admin"
+on public.employee_profiles for all
+using (public.is_platform_admin())
+with check (public.is_platform_admin());
 
 drop policy if exists "profiles self update" on public.employee_profiles;
 create policy "profiles self update"
@@ -173,17 +209,18 @@ using (
 );
 
 drop policy if exists "alerts update leader+" on public.alerts;
-create policy "alerts update leader+"
+drop policy if exists "alerts update hr+" on public.alerts;
+create policy "alerts update hr+"
 on public.alerts for update
 using (
-  public.current_app_role() in ('leader', 'hr_admin', 'super_admin')
+  public.current_app_role() in ('hr_admin', 'super_admin')
   and (
     employee_id is null
     or public.can_view_employee(employee_id)
   )
 )
 with check (
-  public.current_app_role() in ('leader', 'hr_admin', 'super_admin')
+  public.current_app_role() in ('hr_admin', 'super_admin')
 );
 
 drop policy if exists "notification logs read scoped" on public.notification_logs;
@@ -194,7 +231,7 @@ using (
   or company_id = public.current_company_id()
 );
 
--- Recommended secure reporting view for leaders/employees
+-- Recommended secure reporting view for HR leaders and employees
 create or replace view public.vw_mood_checkins_enriched_secure
 with (security_barrier = true)
 as

@@ -1,4 +1,4 @@
-export type Role = "super_admin" | "hr_admin" | "leader" | "employee";
+export type Role = "super_admin" | "hr_admin" | "employee";
 
 export type AlertStatus = "open" | "sent" | "resolved" | "dismissed";
 export type AlertType = "marking_missing" | "marking_requested" | "negative_trend";
@@ -75,7 +75,7 @@ export type EmployeeDirectoryRecord = {
 
 export type EmployeeIntakeOptions = {
   locations: Array<{ id: string; name: string }>;
-  orgUnits: Array<{ id: string; name: string }>;
+  orgUnits: Array<{ id: string; name: string; parent_id?: string | null }>;
   managers: Array<{ id: string; name: string }>;
 };
 
@@ -149,6 +149,26 @@ export type SurveyQuestionInsight = {
   responses: SurveyQuestionResponseDetail[];
 };
 
+export type SurveyAreaQuestionInsight = {
+  question_id: string;
+  question_text: string;
+  dimension: string | null;
+  response_count: number;
+  average_score: number | null;
+  score_distribution: ChartPoint[];
+};
+
+export type SurveyAreaComparison = {
+  area_id: string;
+  parent_area_id?: string | null;
+  area_label: string;
+  employees: number;
+  submitted_count: number;
+  participation_rate: number;
+  average_score: number | null;
+  questions: SurveyAreaQuestionInsight[];
+};
+
 export type SurveyResultSummary = {
   survey_id: string;
   title: string;
@@ -164,6 +184,7 @@ export type SurveyResultSummary = {
   average_score: number | null;
   latest_response_at: string | null;
   questions: SurveyQuestionInsight[];
+  area_comparisons: SurveyAreaComparison[];
 };
 
 export type SurveyAssignmentStatus = "scheduled" | "pending" | "submitted";
@@ -243,7 +264,7 @@ export type DashboardFilters = {
 export type DashboardFilterOptions = {
   companies: Array<{ id: string; name: string }>;
   locations: Array<{ id: string; site_name: string }>;
-  orgUnits: Array<{ id: string; name: string }>;
+  orgUnits: Array<{ id: string; name: string; parent_id?: string | null }>;
   genders: string[];
   jobTitles: string[];
   educationLevels: string[];
@@ -326,6 +347,7 @@ export type AreaEmployeeMoodRow = {
 export type AreaDashboardDetail = {
   area: AreaMoodPoint;
   totalEmployeesInScope: number;
+  childAreas: AreaMoodPoint[];
   employees: AreaEmployeeMoodRow[];
   anonymousCheckins: AreaEmployeeCheckin[];
 };
@@ -335,8 +357,9 @@ export type AppUser = {
   email: string;
   full_name: string;
   role: Role;
-  company_id: string;
+  company_id: string | null;
   org_unit_id: string | null;
+  is_platform_admin?: boolean;
 };
 
 export type GeographySummary = {

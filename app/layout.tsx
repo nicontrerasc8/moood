@@ -1,12 +1,15 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const defaultUrl = process.env.VERCEL_URL
-  ? `https://${process.env.VERCEL_URL}`
-  : "http://localhost:3000";
+const configuredAppUrl =
+  process.env.NEXT_PUBLIC_APP_URL ||
+  process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+  process.env.VERCEL_URL;
 
 export const metadata: Metadata = {
-  metadataBase: new URL(defaultUrl),
+  metadataBase: configuredAppUrl
+    ? new URL(configuredAppUrl.startsWith("http") ? configuredAppUrl : `https://${configuredAppUrl}`)
+    : undefined,
   title: "MOOOD",
   description: "Plataforma de bienestar, clima y comunicación organizacional.",
 };

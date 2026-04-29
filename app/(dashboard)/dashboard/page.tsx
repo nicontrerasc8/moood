@@ -6,7 +6,7 @@ import { getDashboardSnapshot } from "@/lib/queries/moood";
 
 export default async function DashboardPage() {
   await connection();
-  const user = await requireRole("leader");
+  const user = await requireRole("hr_admin");
   const snapshot = await getDashboardSnapshot(user);
 
   return (

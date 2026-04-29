@@ -6,7 +6,7 @@ import { AlertsClient } from "@/components/alerts/alerts-client";
 
 export default async function AlertsPage() {
   await connection();
-  const user = await requireRole("leader");
+  const user = await requireRole("hr_admin");
   const alertList = await getAlerts(user);
 
   return (

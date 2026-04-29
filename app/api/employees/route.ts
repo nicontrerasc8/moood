@@ -14,7 +14,7 @@ const employeePayloadSchema = z.object({
   password: z.string().min(8, "La contrasena temporal debe tener al menos 8 caracteres."),
   employeeCode: z.string().optional(),
   phone: z.string().optional(),
-  role: z.enum(["employee", "leader", "hr_admin"]),
+  role: z.enum(["employee", "hr_admin"]),
   employmentStatus: z.enum(["active", "inactive"]).default("active"),
   locationId: z.string().min(1, "La sede es obligatoria."),
   orgUnitId: z.string().min(1, "El area es obligatoria."),
@@ -95,6 +95,10 @@ export async function POST(request: Request) {
   const user = await getCurrentUser();
   if (!user) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  if (!user.company_id) {
+    return NextResponse.json({ error: "company-scope-required" }, { status: 403 });
   }
 
   if (!hasRole(user, "hr_admin")) {
@@ -208,7 +212,7 @@ export async function POST(request: Request) {
       cost_center: nullIfEmpty(payload.costCenter),
       team_name: nullIfEmpty(payload.teamName),
       project_name: nullIfEmpty(payload.projectName),
-      is_leader: payload.role === "leader",
+      is_leader: payload.role === "hr_admin",
       active: payload.employmentStatus === "active",
     });
 

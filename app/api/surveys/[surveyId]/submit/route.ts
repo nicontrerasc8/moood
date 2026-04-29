@@ -65,6 +65,10 @@ export async function POST(request: Request, context: { params: Promise<{ survey
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  if (!user.company_id) {
+    return NextResponse.json({ error: "company-scope-required" }, { status: 403 });
+  }
+
   const { surveyId } = await context.params;
   let payload: z.infer<typeof submitSurveySchema>;
 

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import type { AreaDashboardDetail } from "@/types/app";
 
 function getMoodBadgeClass(score: number | null) {
@@ -48,6 +49,56 @@ export function AreaDetailDashboard({ detail }: { detail: AreaDashboardDetail })
           detail={`${detail.area.employees} de ${detail.totalEmployeesInScope} colaboradores visibles.`}
         />
       </div>
+
+      {detail.childAreas.length > 0 ? (
+        <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Sub-areas</p>
+              <h3 className="mt-1 text-2xl font-semibold">Dashboard interno</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Cada tarjeta abre el detalle de esa sub-area y sus descendientes.
+            </p>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {detail.childAreas.map((childArea) => (
+              <Link
+                key={childArea.id}
+                href={`/dashboard/areas/${encodeURIComponent(childArea.id)}`}
+                className="rounded-[1.5rem] border border-foreground/10 bg-brand-purple/8 p-5 transition hover:-translate-y-0.5 hover:bg-brand-purple/12"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                      {childArea.weight}% de la empresa
+                    </p>
+                    <h4 className="mt-2 text-lg font-semibold">{childArea.label}</h4>
+                  </div>
+                  <Badge className={getMoodBadgeClass(childArea.checkins ? childArea.averageMood : null)} variant="outline">
+                    {childArea.checkins ? childArea.averageMood.toFixed(1) : "Sin datos"}
+                  </Badge>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+                  <div className="rounded-2xl bg-white px-3 py-2">
+                    <p className="text-muted-foreground">Personas</p>
+                    <p className="font-semibold">{childArea.employees}</p>
+                  </div>
+                  <div className="rounded-2xl bg-white px-3 py-2">
+                    <p className="text-muted-foreground">Marca</p>
+                    <p className="font-semibold">{childArea.participation}%</p>
+                  </div>
+                  <div className="rounded-2xl bg-white px-3 py-2">
+                    <p className="text-muted-foreground">Check-ins</p>
+                    <p className="font-semibold">{childArea.checkins}</p>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="rounded-[2rem] border border-white/70 bg-white/90 p-6 shadow-sm">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">

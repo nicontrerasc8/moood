@@ -2,8 +2,7 @@ import type { AppUser, Employee, MoodCheckin, Role } from "@/types/app";
 
 const roleWeight: Record<Role, number> = {
   employee: 1,
-  leader: 2,
-  hr_admin: 3,
+  hr_admin: 2,
   super_admin: 4,
 };
 
@@ -14,7 +13,6 @@ export function hasRole(user: AppUser, minimumRole: Role) {
 export function canViewEmployee(user: AppUser, employee: Employee) {
   if (user.role === "super_admin") return true;
   if (user.role === "hr_admin") return user.company_id === employee.company_id;
-  if (user.role === "leader") return user.org_unit_id === employee.org_unit_id || user.id === employee.manager_id;
   return user.id === employee.id;
 }
 
@@ -37,7 +35,7 @@ export function canViewAnonymousIdentity(user: AppUser) {
 }
 
 export function canEditAlerts(user: AppUser) {
-  return hasRole(user, "leader");
+  return hasRole(user, "hr_admin");
 }
 
 export function canCheckInToday(checkins: MoodCheckin[], employeeId: string, dateIso: string) {

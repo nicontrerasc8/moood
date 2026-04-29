@@ -1,5 +1,6 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -24,8 +25,25 @@ const updatePasswordSchema = z
     path: ["confirmPassword"],
   });
 
-function getAppUrl() {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+async function getAppUrl() {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.VERCEL_PROJECT_PRODUCTION_URL ||
+    process.env.VERCEL_URL;
+
+  if (configuredUrl) {
+    return configuredUrl.startsWith("http") ? configuredUrl : `https://${configuredUrl}`;
+  }
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") || requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") || "https";
+
+  if (!host) {
+    throw new Error("Unable to resolve app URL from environment or request headers.");
+  }
+
+  return `${proto}://${host}`;
 }
 
 export async function signInAction(formData: FormData) {
@@ -70,6 +88,25 @@ export async function signInAction(formData: FormData) {
     redirect("/auth/login?error=session-required");
   }
 
+  const { data: admin, error: adminError } = await supabase
+    .from("admins")
+    .select("role")
+    .eq("auth_user_id", user.id)
+    .eq("active", true)
+    .maybeSingle<{ role: "super_admin" }>();
+
+  if (adminError) {
+    console.error("[auth.signInAction] Failed to check admin link", {
+      auth_user_id: user.id,
+      email: user.email,
+      adminError,
+    });
+  }
+
+  if (admin) {
+    redirect("/admin");
+  }
+
   const { data: employee, error: employeeError } = await supabase
     .from("employees")
     .select("app_role")
@@ -103,7 +140,7 @@ export async function forgotPasswordAction(formData: FormData) {
 
   const supabase = await createClient();
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
-    redirectTo: `${getAppUrl()}/auth/confirm?next=/auth/update-password`,
+    redirectTo: `${await getAppUrl()}/auth/confirm?next=/auth/update-password`,
   });
 
   if (error) {

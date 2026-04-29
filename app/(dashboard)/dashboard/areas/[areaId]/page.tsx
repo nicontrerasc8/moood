@@ -14,7 +14,7 @@ export default async function AreaDashboardPage({
   params: Promise<{ areaId: string }>;
 }) {
   await connection();
-  const user = await requireRole("leader");
+  const user = await requireRole("hr_admin");
   const { areaId } = await params;
   const detail = await getAreaDashboardDetail(user, areaId);
 

@@ -137,9 +137,8 @@ export function EmployeeIntakeForm({ options }: EmployeeIntakeFormProps) {
             <div className="mt-4 grid gap-4 sm:grid-cols-2">
               <Field id="role" label="Rol de la plataforma">
                 <select id="role" name="role" defaultValue="employee" className="h-10 w-full rounded-md border bg-white px-3 text-sm">
-                  <option value="employee">Employee</option>
-                  <option value="leader">Leader</option>
-                  <option value="hr_admin">HR Admin</option>
+                  <option value="employee">Usuario normal</option>
+                  <option value="hr_admin">HR leader</option>
                 </select>
               </Field>
               <Field id="employmentStatus" label="Estado laboral">

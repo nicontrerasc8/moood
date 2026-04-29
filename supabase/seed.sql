@@ -3,6 +3,11 @@ values
   ('9b355f5d-330f-40ab-b3df-4ba4a3000001', 'MOOOD Andina', 'MOOOD Andina S.A.C.', 'internal', 'Technology')
 on conflict (id) do nothing;
 
+insert into public.admins (id, email, full_name, role)
+values
+  ('9b355f5d-330f-40ab-b3df-4ba4a30000a1', 'admin@moood.pe', 'Admin MOOOD', 'super_admin')
+on conflict (email) do nothing;
+
 insert into public.locations (id, company_id, country, region, province, district, city, site_name, address, latitude, longitude)
 values
   ('9b355f5d-330f-40ab-b3df-4ba4a3100001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', 'Peru', 'Lima', 'Lima', 'San Isidro', 'Lima', 'HQ San Isidro', 'Av. Canaval y Moreyra 100', -12.0977, -77.0365),
@@ -13,13 +18,17 @@ insert into public.org_units (id, company_id, parent_id, code, name, unit_type, 
 values
   ('9b355f5d-330f-40ab-b3df-4ba4a3200001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', null, 'ROOT', 'MOOOD Andina', 'company', 1),
   ('9b355f5d-330f-40ab-b3df-4ba4a3200002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200001', 'HR', 'People & Culture', 'division', 2),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200001', 'OPS', 'Operations', 'division', 2)
+  ('9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200001', 'OPS', 'Operations', 'division', 2),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3200004', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200002', 'HR-TAL', 'Talent', 'department', 3),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3200005', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200002', 'HR-WEL', 'Wellbeing', 'department', 3),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3200006', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200003', 'OPS-FLD', 'Field Operations', 'department', 3),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3200007', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3200003', 'OPS-CX', 'Customer Experience', 'department', 3)
 on conflict (id) do nothing;
 
 insert into public.employees (id, company_id, employee_code, first_name, last_name, email, phone, status, hire_date, app_role)
 values
   ('9b355f5d-330f-40ab-b3df-4ba4a3300001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', 'EMP-001', 'Camila', 'Torres', 'camila@moood.pe', '+51999911111', 'active', '2024-01-15', 'hr_admin'),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', 'EMP-002', 'Diego', 'Ramos', 'diego@moood.pe', '+51999922222', 'active', '2024-02-01', 'leader'),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', 'EMP-002', 'Diego', 'Ramos', 'diego@moood.pe', '+51999922222', 'active', '2024-02-01', 'hr_admin'),
   ('9b355f5d-330f-40ab-b3df-4ba4a3300003', '9b355f5d-330f-40ab-b3df-4ba4a3000001', 'EMP-003', 'Sofia', 'Alvarez', 'sofia@moood.pe', '+51999933333', 'active', '2024-03-01', 'employee')
 on conflict (id) do nothing;
 
@@ -44,9 +53,9 @@ insert into public.employee_profiles (
   is_leader
 )
 values
-  ('9b355f5d-330f-40ab-b3df-4ba4a3400001', '9b355f5d-330f-40ab-b3df-4ba4a3300001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100001', '9b355f5d-330f-40ab-b3df-4ba4a3200002', null, 'F', 'Universitario', 'HR Manager', 'Administrativo', 'day', 'Indefinido', 'internal', '30-39', '1-3', 'Day', 'People', true),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3400002', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100001', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3300001', 'M', 'Universitario', 'Operations Lead', 'Operaciones', 'day', 'Indefinido', 'internal', '30-39', '1-3', 'Day', 'Operations', true),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3400003', '9b355f5d-330f-40ab-b3df-4ba4a3300003', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3300002', 'F', 'Tecnico', 'Field Analyst', 'Operaciones', 'mixed', 'Plazo fijo', 'internal', '20-29', '0-1', 'Mixed', 'Operations', false)
+  ('9b355f5d-330f-40ab-b3df-4ba4a3400001', '9b355f5d-330f-40ab-b3df-4ba4a3300001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100001', '9b355f5d-330f-40ab-b3df-4ba4a3200005', null, 'F', 'Universitario', 'HR Manager', 'Administrativo', 'day', 'Indefinido', 'internal', '30-39', '1-3', 'Day', 'People', true),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3400002', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100001', '9b355f5d-330f-40ab-b3df-4ba4a3200006', '9b355f5d-330f-40ab-b3df-4ba4a3300001', 'M', 'Universitario', 'Operations Lead', 'Operaciones', 'day', 'Indefinido', 'internal', '30-39', '1-3', 'Day', 'Operations', true),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3400003', '9b355f5d-330f-40ab-b3df-4ba4a3300003', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3100002', '9b355f5d-330f-40ab-b3df-4ba4a3200007', '9b355f5d-330f-40ab-b3df-4ba4a3300002', 'F', 'Tecnico', 'Field Analyst', 'Operaciones', 'mixed', 'Plazo fijo', 'internal', '20-29', '0-1', 'Mixed', 'Operations', false)
 on conflict (id) do nothing;
 
 insert into public.surveys (id, company_id, title, description, is_anonymous, active, start_date, end_date, target_scope, created_by)
@@ -82,8 +91,8 @@ insert into public.survey_responses (
   anonymity_mode
 )
 values
-  ('9b355f5d-330f-40ab-b3df-4ba4a3660001', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100001', null, 4, '4'::jsonb, now() - interval '2 days', 'anonymous'),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3660002', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100001', 'Mantener el ritmo de feedback del lider.', null, null, now() - interval '2 days', 'anonymous')
+  ('9b355f5d-330f-40ab-b3df-4ba4a3660001', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200006', '9b355f5d-330f-40ab-b3df-4ba4a3100001', null, 4, '4'::jsonb, now() - interval '2 days', 'anonymous'),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3660002', '9b355f5d-330f-40ab-b3df-4ba4a3500001', '9b355f5d-330f-40ab-b3df-4ba4a3600002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200006', '9b355f5d-330f-40ab-b3df-4ba4a3100001', 'Mantener el ritmo de feedback del lider.', null, null, now() - interval '2 days', 'anonymous')
 on conflict (id) do nothing;
 
 insert into public.alert_rules (
@@ -122,6 +131,6 @@ insert into public.mood_checkins (
   requested_followup
 )
 values
-  ('9b355f5d-330f-40ab-b3df-4ba4a3800001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100001', current_date - 1, now() - interval '1 day', 4, 'Bien', 'calm', 'Todo estable', 'manual_checkin', 'identified', false),
-  ('9b355f5d-330f-40ab-b3df-4ba4a3800002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300003', '9b355f5d-330f-40ab-b3df-4ba4a3200003', '9b355f5d-330f-40ab-b3df-4ba4a3100002', current_date, now(), 2, 'Bajo', 'stress', 'Mucha carga operativa', 'manual_checkin', 'identified', true)
+  ('9b355f5d-330f-40ab-b3df-4ba4a3800001', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300002', '9b355f5d-330f-40ab-b3df-4ba4a3200006', '9b355f5d-330f-40ab-b3df-4ba4a3100001', current_date - 1, now() - interval '1 day', 4, 'Bien', 'calm', 'Todo estable', 'manual_checkin', 'identified', false),
+  ('9b355f5d-330f-40ab-b3df-4ba4a3800002', '9b355f5d-330f-40ab-b3df-4ba4a3000001', '9b355f5d-330f-40ab-b3df-4ba4a3300003', '9b355f5d-330f-40ab-b3df-4ba4a3200007', '9b355f5d-330f-40ab-b3df-4ba4a3100002', current_date, now(), 2, 'Bajo', 'stress', 'Mucha carga operativa', 'manual_checkin', 'identified', true)
 on conflict (id) do nothing;

@@ -21,6 +21,7 @@ export default async function EmployeesPage() {
     orgUnits: filterOptions.orgUnits.map((orgUnit) => ({
       id: orgUnit.id,
       name: orgUnit.name,
+      parent_id: orgUnit.parent_id,
     })),
     managers: employeeList.map((employee) => ({
       id: employee.id,

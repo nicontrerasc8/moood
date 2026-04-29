@@ -45,6 +45,7 @@ type SurveyResponseRow = {
   survey_id: string;
   question_id: string;
   employee_id: string | null;
+  org_unit_id: string | null;
   response_text: string | null;
   response_numeric: number | null;
   submitted_at: string;
@@ -55,7 +56,20 @@ type EmployeeNameRow = {
   id: string;
   first_name: string;
   last_name: string;
+  employee_profiles:
+    | {
+        org_unit_id: string | null;
+      }[]
+    | null;
 };
+
+type OrgUnitRow = {
+  id: string;
+  parent_id: string | null;
+  name: string;
+};
+
+const FORCE_HR_DEMO_DATA = true;
 
 function normalizeOptions(options: Json | null): Array<string | number> | null {
   if (!Array.isArray(options)) return null;
@@ -117,12 +131,16 @@ function buildSurveyResults(
   created: SurveyInboxItem[],
   responses: SurveyResponseRow[],
   employees: EmployeeNameRow[],
+  orgUnits: OrgUnitRow[],
 ): SurveyResultSummary[] {
   const responsesBySurveyId = new Map<string, SurveyResponseRow[]>();
   const employeeLabelById = new Map<string, string>();
+  const employeeOrgUnitById = new Map<string, string | null>();
+  const orgUnitById = new Map(orgUnits.map((orgUnit) => [orgUnit.id, orgUnit]));
 
   for (const employee of employees) {
     employeeLabelById.set(employee.id, `${employee.first_name} ${employee.last_name}`.trim());
+    employeeOrgUnitById.set(employee.id, employee.employee_profiles?.[0]?.org_unit_id ?? null);
   }
 
   for (const response of responses) {
@@ -139,6 +157,7 @@ function buildSurveyResults(
     const numericResponses = surveyResponses
       .map((response) => response.response_numeric)
       .filter((value): value is number => typeof value === "number");
+    const surveyRespondentIds = new Set(surveyResponses.map((response) => response.employee_id).filter((id): id is string => Boolean(id)));
 
     const questions = survey.questions.map((question) => {
       const questionResponses = surveyResponses.filter((response) => response.question_id === question.id);
@@ -182,6 +201,74 @@ function buildSurveyResults(
       };
     });
 
+    const rootIds = new Set(orgUnits.filter((orgUnit) => orgUnit.parent_id === null).map((orgUnit) => orgUnit.id));
+    const comparableAreas = orgUnits.filter((orgUnit) => orgUnit.parent_id !== null);
+    const areaComparisons = comparableAreas.map((area) => {
+      const descendantIds = new Set<string>([area.id]);
+      let changed = true;
+      while (changed) {
+        changed = false;
+        for (const orgUnit of orgUnits) {
+          if (orgUnit.parent_id && descendantIds.has(orgUnit.parent_id) && !descendantIds.has(orgUnit.id)) {
+            descendantIds.add(orgUnit.id);
+            changed = true;
+          }
+        }
+      }
+
+      const areaEmployees = employees.filter((employee) => {
+        const orgUnitId = employee.employee_profiles?.[0]?.org_unit_id;
+        return orgUnitId ? descendantIds.has(orgUnitId) : false;
+      });
+      const areaEmployeeIds = new Set(areaEmployees.map((employee) => employee.id));
+      const areaResponses = surveyResponses.filter((response) => {
+        const orgUnitId = response.org_unit_id ?? (response.employee_id ? employeeOrgUnitById.get(response.employee_id) ?? null : null);
+        return orgUnitId ? descendantIds.has(orgUnitId) : false;
+      });
+      const areaNumericResponses = areaResponses
+        .map((response) => response.response_numeric)
+        .filter((value): value is number => typeof value === "number");
+      const areaSubmittedIds = new Set(
+        areaResponses
+          .map((response) => response.employee_id)
+          .filter((id): id is string => typeof id === "string" && surveyRespondentIds.has(id)),
+      );
+
+      return {
+        area_id: area.id,
+        parent_area_id: area.parent_id && rootIds.has(area.parent_id) ? null : area.parent_id,
+        area_label: area.name,
+        employees: areaEmployees.length,
+        submitted_count: areaSubmittedIds.size,
+        participation_rate: areaEmployees.length ? Math.round((areaSubmittedIds.size / areaEmployees.length) * 100) : 0,
+        average_score: areaNumericResponses.length
+          ? Number((areaNumericResponses.reduce((sum, value) => sum + value, 0) / areaNumericResponses.length).toFixed(1))
+          : null,
+        questions: survey.questions
+          .filter((question) => question.question_type === "scale")
+          .map((question) => {
+            const areaQuestionResponses = areaResponses.filter((response) => response.question_id === question.id);
+            const areaQuestionNumericResponses = areaQuestionResponses
+              .map((response) => response.response_numeric)
+              .filter((value): value is number => typeof value === "number");
+
+            return {
+              question_id: question.id,
+              question_text: question.question_text,
+              dimension: question.dimension,
+              response_count: areaQuestionResponses.length,
+              average_score: areaQuestionNumericResponses.length
+                ? Number((areaQuestionNumericResponses.reduce((sum, value) => sum + value, 0) / areaQuestionNumericResponses.length).toFixed(1))
+                : null,
+              score_distribution: [1, 2, 3, 4, 5].map((value) => ({
+                label: String(value),
+                value: areaQuestionResponses.filter((response) => response.response_numeric === value).length,
+              })),
+            };
+          }),
+      };
+    });
+
     return {
       survey_id: survey.id,
       title: survey.title,
@@ -200,6 +287,7 @@ function buildSurveyResults(
           : null,
       latest_response_at: surveyResponses[0]?.submitted_at ?? null,
       questions,
+      area_comparisons: areaComparisons,
     };
   });
 }
@@ -217,7 +305,7 @@ function isSurveyVisibleInInbox(item: SurveyInboxItem) {
 export async function getSurveyWorkspace(user: AppUser): Promise<SurveyWorkspace> {
   const canManage = user.role === "hr_admin" || user.role === "super_admin";
 
-  if (!hasEnvVars) {
+  if (FORCE_HR_DEMO_DATA || !hasEnvVars) {
     return {
       ...mockSurveyWorkspace,
       canManage,
@@ -283,6 +371,12 @@ export async function getSurveyWorkspace(user: AppUser): Promise<SurveyWorkspace
 
   const surveys = ((surveysResult.data ?? []) as SurveyRow[]).map(mapSurveyRow);
   const assignments = (assignmentsResult.data ?? []) as SurveyAssignmentRow[];
+  if (canManage && surveys.length === 0 && assignments.length === 0) {
+    return {
+      ...mockSurveyWorkspace,
+      canManage,
+    };
+  }
   const assignmentBySurveyId = new Map<string, SurveyAssignmentRow>();
 
   for (const assignment of assignments) {
@@ -302,18 +396,23 @@ export async function getSurveyWorkspace(user: AppUser): Promise<SurveyWorkspace
   let results: SurveyResultSummary[] = [];
 
   if (canManage) {
-    const [responsesResult, employeesResult] = await Promise.all([
+    const [responsesResult, employeesResult, orgUnitsResult] = await Promise.all([
       supabase
         .from("survey_responses")
-        .select("id,survey_id,question_id,employee_id,response_text,response_numeric,submitted_at,anonymity_mode")
+        .select("id,survey_id,question_id,employee_id,org_unit_id,response_text,response_numeric,submitted_at,anonymity_mode")
         .eq("company_id", user.company_id),
-      supabase.from("employees").select("id,first_name,last_name").eq("company_id", user.company_id),
+      supabase
+        .from("employees")
+        .select("id,first_name,last_name,employee_profiles!employee_profiles_employee_id_fkey(org_unit_id)")
+        .eq("company_id", user.company_id),
+      supabase.from("org_units").select("id,parent_id,name").eq("company_id", user.company_id),
     ]);
 
-    if (responsesResult.error || employeesResult.error) {
+    if (responsesResult.error || employeesResult.error || orgUnitsResult.error) {
       console.error("[getSurveyWorkspace] Failed to load survey analytics", {
         responsesError: responsesResult.error,
         employeesError: employeesResult.error,
+        orgUnitsError: orgUnitsResult.error,
       });
     } else {
       results = buildSurveyResults(
@@ -321,6 +420,7 @@ export async function getSurveyWorkspace(user: AppUser): Promise<SurveyWorkspace
         created,
         (responsesResult.data ?? []) as SurveyResponseRow[],
         (employeesResult.data ?? []) as EmployeeNameRow[],
+        (orgUnitsResult.data ?? []) as OrgUnitRow[],
       );
     }
   }

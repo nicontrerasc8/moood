@@ -7,18 +7,17 @@ import { cn } from "@/lib/utils";
 import type { Role } from "@/types/app";
 
 const items = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, minimumRole: "leader" as Role },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, minimumRole: "hr_admin" as Role },
   { href: "/mood", label: "Mood", icon: SmilePlus, minimumRole: "employee" as Role },
   { href: "/surveys", label: "Encuestas", icon: ClipboardList, minimumRole: "employee" as Role },
-  { href: "/alerts", label: "Alertas", icon: AlertTriangle, minimumRole: "leader" as Role },
+  { href: "/alerts", label: "Alertas", icon: AlertTriangle, minimumRole: "hr_admin" as Role },
   { href: "/employees", label: "Empleados", icon: Users, minimumRole: "hr_admin" as Role },
   { href: "/settings", label: "Configuracion", icon: Settings2, minimumRole: "hr_admin" as Role },
 ];
 
 const roleWeight: Record<Role, number> = {
   employee: 1,
-  leader: 2,
-  hr_admin: 3,
+  hr_admin: 2,
   super_admin: 4,
 };
 

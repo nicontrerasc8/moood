@@ -14,7 +14,18 @@ const createSurveySchema = z
     startDate: z.string().date(),
     endDate: z.string().date().optional().or(z.literal("")),
     isAnonymous: z.boolean().default(true),
-    selectedQuestionIds: z.array(z.string()).min(2),
+    selectedQuestionIds: z.array(z.string()).min(2).optional(),
+    questions: z
+      .array(
+        z.object({
+          text: z.string().trim().min(3).max(240),
+          dimension: z.string().trim().min(1).max(60),
+          type: z.enum(["scale", "text"]).default("scale"),
+          required: z.boolean().default(true),
+        }),
+      )
+      .min(2)
+      .optional(),
   })
   .superRefine((payload, ctx) => {
     if (payload.endDate && payload.endDate < payload.startDate) {
@@ -46,6 +57,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  if (!user.company_id) {
+    return NextResponse.json({ error: "company-scope-required" }, { status: 403 });
+  }
+
   let payload: z.infer<typeof createSurveySchema>;
   try {
     payload = createSurveySchema.parse(await request.json());
@@ -59,7 +74,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const selectedQuestions = climateQuestionBank.filter((question) => payload.selectedQuestionIds.includes(question.id));
+  const selectedQuestions = payload.questions?.length
+    ? payload.questions
+    : climateQuestionBank.filter((question) => payload.selectedQuestionIds?.includes(question.id));
   if (selectedQuestions.length < 2) {
     return NextResponse.json({ error: "question-selection-invalid" }, { status: 400 });
   }

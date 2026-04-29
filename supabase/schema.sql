@@ -48,6 +48,19 @@ create table public.companies (
   constraint companies_pkey primary key (id)
 );
 
+create table public.admins (
+  id uuid not null default uuid_generate_v4(),
+  auth_user_id uuid unique,
+  email text not null unique,
+  full_name text not null,
+  role public.app_role_enum not null default 'super_admin',
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint admins_pkey primary key (id),
+  constraint admins_role_super_admin_check check (role = 'super_admin')
+);
+
 create table public.employees (
   id uuid not null default uuid_generate_v4(),
   company_id uuid not null,

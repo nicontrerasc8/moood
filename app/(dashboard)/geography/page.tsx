@@ -6,7 +6,7 @@ import { getGeographySummary } from "@/lib/queries/moood";
 
 export default async function GeographyPage() {
   await connection();
-  const user = await requireRole("leader");
+  const user = await requireRole("hr_admin");
   const summary = await getGeographySummary(user);
 
   return (

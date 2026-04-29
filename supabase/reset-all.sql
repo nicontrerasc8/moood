@@ -8,8 +8,10 @@ drop trigger if exists trg_sync_employee_role_from_profile on public.employee_pr
 drop function if exists public.link_auth_user_to_employee();
 drop function if exists public.sync_employee_role_from_profile();
 drop function if exists public.current_employee_id();
+drop function if exists public.current_admin_id();
 drop function if exists public.current_company_id();
 drop function if exists public.current_app_role();
+drop function if exists public.is_platform_admin();
 drop function if exists public.is_hr_or_super();
 drop function if exists public.is_leader_or_above();
 drop function if exists public.current_org_unit_id();
@@ -28,6 +30,7 @@ drop table if exists public.employee_profiles cascade;
 drop table if exists public.org_units cascade;
 drop table if exists public.locations cascade;
 drop table if exists public.employees cascade;
+drop table if exists public.admins cascade;
 drop table if exists public.companies cascade;
 
 drop type if exists public.alert_status_enum cascade;

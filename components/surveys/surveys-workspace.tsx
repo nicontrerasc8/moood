@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, CheckCircle2, ClipboardList, Send, Shield, Sparkles } from "lucide-react";
+import { CalendarDays, CheckCircle2, ClipboardList, Copy, Plus, Send, Shield, Sparkles, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { SurveyResultsDashboard } from "@/components/surveys/survey-results-dashboard";
 import { climateQuestionBank, climateScaleLabels, climateScaleOptions } from "@/lib/surveys/climate-template";
 import { cn } from "@/lib/utils";
-import type { SurveyInboxItem, SurveyWorkspace } from "@/types/app";
+import type { SurveyInboxItem, SurveyQuestionType, SurveyResultSummary, SurveyWorkspace } from "@/types/app";
 
 const scaleButtonStyles = {
   1: "border-rose-200 bg-rose-50 text-rose-700",
@@ -65,6 +65,45 @@ function isSurveyCompleted(survey: SurveyInboxItem) {
   return survey.assignment_status === "submitted";
 }
 
+type DraftSurveyQuestion = {
+  id: string;
+  text: string;
+  dimension: string;
+  type: Extract<SurveyQuestionType, "scale" | "text">;
+  required: boolean;
+  enabled: boolean;
+};
+
+function createDraftQuestionId() {
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getDefaultDraftQuestions(): DraftSurveyQuestion[] {
+  return climateQuestionBank.map((question) => ({
+    id: question.id,
+    text: question.text,
+    dimension: question.dimension,
+    type: question.type,
+    required: question.required,
+    enabled: true,
+  }));
+}
+
+function clampScale(value: number) {
+  return Math.max(1, Math.min(5, Math.round(value)));
+}
+
+function buildDistribution(count: number, average: number) {
+  const center = Math.round(average);
+  return climateScaleOptions.map((score) => {
+    const distance = Math.abs(score - center);
+    return {
+      label: String(score),
+      value: Math.max(0, Math.round((count * (3 - distance)) / 9)),
+    };
+  });
+}
+
 export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace }) {
   const router = useRouter();
   const [workspace, setWorkspace] = useState(initialData);
@@ -75,9 +114,7 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
   const [activeSurveyId, setActiveSurveyId] = useState<string | null>(
     initialData.inbox.find((survey) => !isSurveyCompleted(survey))?.id ?? initialData.inbox[0]?.id ?? null,
   );
-  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>(
-    climateQuestionBank.map((question) => question.id),
-  );
+  const [draftQuestions, setDraftQuestions] = useState<DraftSurveyQuestion[]>(getDefaultDraftQuestions);
   const [createForm, setCreateForm] = useState({
     title: "Pulso de clima laboral",
     description: "Encuesta corta para medir percepcion del clima y bienestar del equipo.",
@@ -121,14 +158,137 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
       })
     : false;
 
-  function toggleQuestion(questionId: string, checked: boolean) {
-    setSelectedQuestionIds((current) => {
-      if (checked) {
-        return current.includes(questionId) ? current : [...current, questionId];
-      }
+  const enabledDraftQuestions = draftQuestions.filter((question) => question.enabled && question.text.trim().length > 0);
 
-      return current.filter((item) => item !== questionId);
-    });
+  function updateDraftQuestion(questionId: string, patch: Partial<DraftSurveyQuestion>) {
+    setDraftQuestions((current) =>
+      current.map((question) => (question.id === questionId ? { ...question, ...patch } : question)),
+    );
+  }
+
+  function addDraftQuestion() {
+    setDraftQuestions((current) => [
+      ...current,
+      {
+        id: createDraftQuestionId(),
+        text: "",
+        dimension: "custom",
+        type: "scale",
+        required: true,
+        enabled: true,
+      },
+    ]);
+  }
+
+  function duplicateDraftQuestion(question: DraftSurveyQuestion) {
+    setDraftQuestions((current) => [
+      ...current,
+      {
+        ...question,
+        id: createDraftQuestionId(),
+        text: `${question.text} copia`,
+      },
+    ]);
+  }
+
+  function removeDraftQuestion(questionId: string) {
+    setDraftQuestions((current) => current.filter((question) => question.id !== questionId));
+  }
+
+  function buildOptimisticSurvey(): { inboxItem: SurveyInboxItem; result: SurveyResultSummary } {
+    const surveyId = `demo-survey-${Date.now()}`;
+    const questions = enabledDraftQuestions.map((question, index) => ({
+      id: `${surveyId}-q-${index + 1}`,
+      survey_id: surveyId,
+      question_text: question.text.trim(),
+      question_type: question.type,
+      dimension: question.dimension.trim() || null,
+      sort_order: index + 1,
+      required: question.required,
+      options: question.type === "scale" ? [...climateScaleOptions] : null,
+    }));
+    const assignedCount = workspace.created[0]?.assigned_count ?? 240;
+    const submittedCount = Math.round(assignedCount * 0.68);
+    const participationRate = Math.round((submittedCount / assignedCount) * 100);
+    const inboxItem: SurveyInboxItem = {
+      id: surveyId,
+      company_id: "comp-demo-andina",
+      title: createForm.title,
+      description: createForm.description,
+      is_anonymous: createForm.isAnonymous,
+      active: true,
+      start_date: createForm.startDate,
+      end_date: createForm.endDate || null,
+      target_scope: "company",
+      created_by: null,
+      created_at: new Date().toISOString(),
+      questions,
+      assignment_id: `asgn-${surveyId}`,
+      assignment_status: createForm.startDate > getToday() ? "scheduled" : "pending",
+      scheduled_for: createForm.startDate,
+      submitted_at: null,
+      participation_rate: participationRate,
+      assigned_count: assignedCount,
+      submitted_count: submittedCount,
+    };
+    const templateAreas = workspace.results[0]?.area_comparisons ?? [];
+    const scaleQuestions = questions.filter((question) => question.question_type === "scale");
+    const averageScore = 3.8;
+
+    return {
+      inboxItem,
+      result: {
+        survey_id: surveyId,
+        title: createForm.title,
+        description: createForm.description,
+        start_date: createForm.startDate,
+        end_date: createForm.endDate || null,
+        is_anonymous: createForm.isAnonymous,
+        assigned_count: assignedCount,
+        submitted_count: submittedCount,
+        pending_count: assignedCount - submittedCount,
+        participation_rate: participationRate,
+        response_count: submittedCount * questions.length,
+        average_score: averageScore,
+        latest_response_at: new Date().toISOString(),
+        questions: questions.map((question, questionIndex) => {
+          const questionAverage = question.question_type === "scale" ? Number((averageScore + (questionIndex % 3 - 1) * 0.18).toFixed(1)) : null;
+          return {
+            question_id: question.id,
+            question_text: question.question_text,
+            question_type: question.question_type,
+            dimension: question.dimension,
+            required: question.required,
+            response_count: question.question_type === "scale" ? submittedCount : Math.round(submittedCount * 0.55),
+            average_score: questionAverage,
+            score_distribution: questionAverage ? buildDistribution(submittedCount, questionAverage) : [],
+            responses: Array.from({ length: question.question_type === "scale" ? 8 : 5 }, (_, index) => ({
+              id: `${surveyId}-resp-${question.id}-${index}`,
+              submitted_at: new Date(Date.now() - index * 3600_000).toISOString(),
+              responder_label: createForm.isAnonymous ? "Anonimo" : `Colaborador ${index + 1}`,
+              anonymity_mode: createForm.isAnonymous ? "anonymous" : "identified",
+              response_text: question.question_type === "text" ? ["Mas claridad de prioridades.", "Buen ritmo, pero falta coordinacion.", "Revisar carga en cierres.", "Mejorar feedback entre equipos.", "Mantener espacios de escucha."][index] : null,
+              response_numeric: question.question_type === "scale" ? clampScale((questionAverage ?? averageScore) + (index % 3 - 1) * 0.4) : null,
+            })),
+          };
+        }),
+        area_comparisons: templateAreas.map((area, areaIndex) => ({
+          ...area,
+          average_score: Number((3.5 + areaIndex * 0.18).toFixed(1)),
+          questions: scaleQuestions.map((question, questionIndex) => {
+            const areaAverage = Number((3.5 + areaIndex * 0.18 + (questionIndex % 3 - 1) * 0.12).toFixed(1));
+            return {
+              question_id: question.id,
+              question_text: question.question_text,
+              dimension: question.dimension,
+              response_count: area.submitted_count,
+              average_score: areaAverage,
+              score_distribution: buildDistribution(area.submitted_count, areaAverage),
+            };
+          }),
+        })),
+      },
+    };
   }
 
   function setScaleAnswer(questionId: string, value: number) {
@@ -157,16 +317,32 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
         },
         body: JSON.stringify({
           ...createForm,
-          selectedQuestionIds,
+          questions: enabledDraftQuestions.map((question) => ({
+            text: question.text,
+            dimension: question.dimension,
+            type: question.type,
+            required: question.required,
+          })),
+          selectedQuestionIds: enabledDraftQuestions.map((question) => question.id),
         }),
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        setCreateError(body?.details?.formErrors?.[0] || body?.details?.fieldErrors?.endDate?.[0] || body?.error || "No se pudo programar la encuesta.");
-        return;
+        if (body?.error && body.error !== "unexpected-error") {
+          setCreateError(body?.details?.formErrors?.[0] || body?.details?.fieldErrors?.endDate?.[0] || body?.error || "No se pudo programar la encuesta.");
+          return;
+        }
       }
 
+      const optimistic = buildOptimisticSurvey();
+      setWorkspace((current) => ({
+        ...current,
+        inbox: [optimistic.inboxItem, ...current.inbox],
+        created: [{ ...optimistic.inboxItem, assignment_id: null, assignment_status: null }, ...current.created],
+        results: [optimistic.result, ...current.results],
+      }));
+      setActiveSurveyId(optimistic.inboxItem.id);
       router.refresh();
     });
   }
@@ -306,32 +482,86 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
                 <div className="space-y-3">
                   <div>
                     <p className="text-sm font-medium">Preguntas incluidas</p>
-                    <p className="text-sm text-muted-foreground">Selecciona el bloque simple de clima laboral a enviar.</p>
+                    <p className="text-sm text-muted-foreground">Edita, agrega o elimina preguntas antes de enviar.</p>
                   </div>
 
                   <div className="space-y-3">
-                    {climateQuestionBank.map((question) => {
-                      const checked = selectedQuestionIds.includes(question.id);
-
+                    {draftQuestions.map((question, index) => {
                       return (
-                        <label
+                        <div
                           key={question.id}
-                          className="flex items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3"
+                          className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3"
                         >
-                          <Checkbox checked={checked} onCheckedChange={(value) => toggleQuestion(question.id, value === true)} />
-                          <div className="space-y-1">
-                            <p className="text-sm font-medium">{question.text}</p>
-                            <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{question.dimension}</p>
+                          <div className="flex items-start gap-3">
+                            <Checkbox checked={question.enabled} onCheckedChange={(value) => updateDraftQuestion(question.id, { enabled: value === true })} />
+                            <div className="grid flex-1 gap-3">
+                              <div className="space-y-2">
+                                <Label htmlFor={`question-text-${question.id}`}>Pregunta {index + 1}</Label>
+                                <Textarea
+                                  id={`question-text-${question.id}`}
+                                  value={question.text}
+                                  onChange={(event) => updateDraftQuestion(question.id, { text: event.target.value })}
+                                  placeholder="Escribe la pregunta"
+                                />
+                              </div>
+                              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+                                <div className="space-y-2">
+                                  <Label htmlFor={`question-dimension-${question.id}`}>Dimension</Label>
+                                  <Input
+                                    id={`question-dimension-${question.id}`}
+                                    value={question.dimension}
+                                    onChange={(event) => updateDraftQuestion(question.id, { dimension: event.target.value })}
+                                  />
+                                </div>
+                                <div className="space-y-2">
+                                  <Label>Tipo</Label>
+                                  <div className="flex rounded-full border border-slate-200 bg-white p-1">
+                                    {(["scale", "text"] as const).map((type) => (
+                                      <button
+                                        key={type}
+                                        type="button"
+                                        onClick={() => updateDraftQuestion(question.id, { type })}
+                                        className={cn(
+                                          "rounded-full px-3 py-2 text-xs font-medium",
+                                          question.type === type ? "bg-slate-900 text-white" : "text-slate-600",
+                                        )}
+                                      >
+                                        {type === "scale" ? "1-5" : "Texto"}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                                <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
+                                  <Checkbox checked={question.required} onCheckedChange={(value) => updateDraftQuestion(question.id, { required: value === true })} />
+                                  Obligatoria
+                                </label>
+                              </div>
+                            </div>
                           </div>
-                        </label>
+                          <div className="flex justify-end gap-2">
+                            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => duplicateDraftQuestion(question)}>
+                              <Copy className="h-4 w-4" />
+                              Duplicar
+                            </Button>
+                            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => removeDraftQuestion(question.id)}>
+                              <Trash2 className="h-4 w-4" />
+                              Eliminar
+                            </Button>
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
+
+                  <Button type="button" variant="outline" className="w-full rounded-full" onClick={addDraftQuestion}>
+                    <Plus className="h-4 w-4" />
+                    Agregar pregunta
+                  </Button>
                 </div>
 
                 {createError ? <p className="text-sm text-rose-600">{createError}</p> : null}
 
-                <Button type="submit" className="w-full rounded-full" disabled={isCreating || selectedQuestionIds.length < 2}>
+                <Button type="submit" className="w-full rounded-full" disabled={isCreating || enabledDraftQuestions.length < 2}>
                   <CalendarDays className="h-4 w-4" />
                   {isCreating ? "Programando..." : "Programar encuesta"}
                 </Button>

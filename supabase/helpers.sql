@@ -9,6 +9,18 @@ as $$
   limit 1;
 $$;
 
+create or replace function public.current_admin_id()
+returns uuid
+language sql
+stable
+as $$
+  select a.id
+  from public.admins a
+  where a.auth_user_id = auth.uid()
+    and a.active = true
+  limit 1;
+$$;
+
 create or replace function public.current_company_id()
 returns uuid
 language sql
@@ -25,11 +37,36 @@ returns text
 language sql
 stable
 as $$
-  select coalesce(e.app_role::text, case when ep.is_leader then 'leader' else 'employee' end)
-  from public.employees e
-  left join public.employee_profiles ep on ep.employee_id = e.id
-  where e.auth_user_id = auth.uid()
-  limit 1;
+  select coalesce(
+    (
+      select a.role::text
+      from public.admins a
+      where a.auth_user_id = auth.uid()
+        and a.active = true
+      limit 1
+    ),
+    (
+      select case
+        when e.app_role = 'super_admin' then 'hr_admin'
+        when e.app_role = 'leader' then 'hr_admin'
+        when e.app_role is not null then e.app_role::text
+        when ep.is_leader then 'hr_admin'
+        else 'employee'
+      end
+      from public.employees e
+      left join public.employee_profiles ep on ep.employee_id = e.id
+      where e.auth_user_id = auth.uid()
+      limit 1
+    )
+  );
+$$;
+
+create or replace function public.is_platform_admin()
+returns boolean
+language sql
+stable
+as $$
+  select public.current_app_role() = 'super_admin';
 $$;
 
 create or replace function public.is_hr_or_super()
@@ -45,7 +82,7 @@ returns boolean
 language sql
 stable
 as $$
-  select public.current_app_role() in ('leader', 'hr_admin', 'super_admin');
+  select public.current_app_role() in ('hr_admin', 'super_admin');
 $$;
 
 create or replace function public.current_org_unit_id()
@@ -76,13 +113,6 @@ as $$
           or (
             public.current_app_role() = 'hr_admin'
             and e.company_id = public.current_company_id()
-          )
-          or (
-            public.current_app_role() = 'leader'
-            and (
-              ep.manager_employee_id = public.current_employee_id()
-              or ep.org_unit_id = public.current_org_unit_id()
-            )
           )
         )
     );

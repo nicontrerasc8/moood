@@ -106,7 +106,7 @@ type EmployeeDirectorySelectRow = {
   email: string | null;
   status: string;
   hire_date: string | null;
-  app_role: EmployeeDirectoryRecord["role"];
+  app_role: EmployeeDirectoryRecord["role"] | "leader";
   employee_profiles: EmployeeDirectoryProfileRow[] | null;
 };
 
@@ -131,6 +131,8 @@ type OrgUnitAreaRow = {
   id: string;
   parent_id: string | null;
   name: string;
+  unit_type?: string | null;
+  leader_employee_id?: string | null;
 };
 
 type AreaMetricRow = {
@@ -143,6 +145,12 @@ type AreaMetricRow = {
 type LocationNameRow = {
   id: string;
   site_name: string | null;
+};
+
+type EmployeeNameRow = {
+  id: string;
+  first_name: string;
+  last_name: string;
 };
 
 type AreaDetailEmployeeSource = {
@@ -163,29 +171,155 @@ type AreaDetailCheckinSource = {
   anonymous: boolean;
 };
 
-function filterEmployeesForUser(user: AppUser) {
-  const companyEmployees = employees.filter((employee) => employee.company_id === user.company_id);
+type OrgUnitEmployeeCountRow = {
+  org_unit_id: string | null;
+};
 
-  if (user.role === "super_admin" || user.role === "hr_admin") return companyEmployees;
-  if (user.role === "leader") {
-    return companyEmployees.filter(
-      (employee) => employee.org_unit_id === user.org_unit_id || employee.manager_id === user.id || employee.id === user.id,
-    );
+const FORCE_HR_DEMO_DATA = true;
+const DEMO_COMPANY_ID = "comp-demo-andina";
+const DEMO_ORG_UNIT_ID = "org-people";
+
+function demoUser(user: AppUser): AppUser {
+  return {
+    ...user,
+    role: user.role === "employee" ? "employee" : "hr_admin",
+    company_id: DEMO_COMPANY_ID,
+    org_unit_id: user.role === "employee" ? (user.org_unit_id ?? DEMO_ORG_UNIT_ID) : DEMO_ORG_UNIT_ID,
+  };
+}
+
+function getOrgUnitDescendantIds(orgUnitId: string | null, orgUnitRows: OrgUnitAreaRow[]) {
+  if (!orgUnitId) return new Set<string>();
+
+  const descendantIds = new Set<string>([orgUnitId]);
+  let added = true;
+
+  while (added) {
+    added = false;
+    for (const orgUnit of orgUnitRows) {
+      if (orgUnit.parent_id && descendantIds.has(orgUnit.parent_id) && !descendantIds.has(orgUnit.id)) {
+        descendantIds.add(orgUnit.id);
+        added = true;
+      }
+    }
   }
 
+  return descendantIds;
+}
+
+function matchesOrgUnitScope(orgUnitId: string | null, scopeOrgUnitId: string | null, orgUnitRows: OrgUnitAreaRow[]) {
+  if (!scopeOrgUnitId) return true;
+  if (!orgUnitId) return false;
+  return getOrgUnitDescendantIds(scopeOrgUnitId, orgUnitRows).has(orgUnitId);
+}
+
+function formatOrgUnitOptions(orgUnitRows: OrgUnitAreaRow[]) {
+  const childrenByParent = new Map<string | null, OrgUnitAreaRow[]>();
+
+  for (const orgUnit of orgUnitRows) {
+    const siblings = childrenByParent.get(orgUnit.parent_id) ?? [];
+    siblings.push(orgUnit);
+    childrenByParent.set(orgUnit.parent_id, siblings);
+  }
+
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  const formatted: Array<{ id: string; name: string; parent_id: string | null }> = [];
+  const visit = (parentId: string | null, depth: number) => {
+    for (const orgUnit of childrenByParent.get(parentId) ?? []) {
+      formatted.push({
+        id: orgUnit.id,
+        name: `${"  ".repeat(depth)}${depth > 0 ? "- " : ""}${orgUnit.name}`,
+        parent_id: orgUnit.parent_id,
+      });
+      visit(orgUnit.id, depth + 1);
+    }
+  };
+
+  visit(null, 0);
+  return formatted;
+}
+
+function buildOrgTreeFromRows(
+  orgUnitRows: OrgUnitAreaRow[],
+  leaderNameById: Map<string, string>,
+  employeeOrgUnitRows: OrgUnitEmployeeCountRow[],
+  moodRows: Array<{ org_unit_id: string | null; mood_score: number }>,
+): OrgTreeNode {
+  const childrenByParent = new Map<string | null, OrgUnitAreaRow[]>();
+
+  for (const orgUnit of orgUnitRows) {
+    const siblings = childrenByParent.get(orgUnit.parent_id) ?? [];
+    siblings.push(orgUnit);
+    childrenByParent.set(orgUnit.parent_id, siblings);
+  }
+
+  for (const siblings of childrenByParent.values()) {
+    siblings.sort((left, right) => left.name.localeCompare(right.name));
+  }
+
+  const roots = childrenByParent.get(null) ?? [];
+  const root = roots[0] ?? orgUnitRows[0];
+
+  if (!root) {
+    return {
+      id: "empty",
+      name: "Sin estructura",
+      type: "Organizacion",
+      leader: "Sin lider",
+      collaborators: 0,
+      averageMood: 0,
+      children: [],
+    };
+  }
+
+  const buildNode = (orgUnit: OrgUnitAreaRow): OrgTreeNode => {
+    const descendantIds = getOrgUnitDescendantIds(orgUnit.id, orgUnitRows);
+    const scores = moodRows
+      .filter((row) => row.org_unit_id && descendantIds.has(row.org_unit_id))
+      .map((row) => row.mood_score);
+
+    return {
+      id: orgUnit.id,
+      name: orgUnit.name,
+      type: orgUnit.unit_type ?? "unidad",
+      leader: orgUnit.leader_employee_id ? leaderNameById.get(orgUnit.leader_employee_id) ?? "Sin lider" : "Sin lider",
+      collaborators: employeeOrgUnitRows.filter((row) => row.org_unit_id && descendantIds.has(row.org_unit_id)).length,
+      averageMood: scores.length ? Number(average(scores).toFixed(1)) : 0,
+      children: (childrenByParent.get(orgUnit.id) ?? []).map(buildNode),
+    };
+  };
+
+  return buildNode(root);
+}
+
+const mockOrgUnitRows: OrgUnitAreaRow[] = orgUnits.map((orgUnit) => ({
+  id: orgUnit.id,
+  parent_id: orgUnit.parent_id,
+  name: orgUnit.name,
+  unit_type: orgUnit.type,
+  leader_employee_id: orgUnit.leader_employee_id,
+}));
+
+function filterEmployeesForUser(user: AppUser) {
+  const companyEmployees = user.company_id
+    ? employees.filter((employee) => employee.company_id === user.company_id)
+    : employees;
+
+  if (user.role === "super_admin" || user.role === "hr_admin") return companyEmployees;
   return companyEmployees.filter((employee) => employee.id === user.id);
 }
 
-function scopeEmployeeDirectoryForUser(user: AppUser, rows: EmployeeDirectoryRecord[]) {
-  const companyRows = rows.filter((row) => row.company_id === user.company_id);
+function scopeEmployeeDirectoryForUser(
+  user: AppUser,
+  rows: EmployeeDirectoryRecord[],
+  orgUnitRows: OrgUnitAreaRow[] = mockOrgUnitRows,
+) {
+  const companyRows = user.company_id ? rows.filter((row) => row.company_id === user.company_id) : rows;
 
   if (user.role === "super_admin" || user.role === "hr_admin") return companyRows;
-  if (user.role === "leader") {
-    return companyRows.filter(
-      (row) => row.org_unit_id === user.org_unit_id || row.manager_id === user.id || row.id === user.id,
-    );
-  }
-
   return companyRows.filter((row) => row.id === user.id);
 }
 
@@ -214,7 +348,7 @@ function buildMockEmployeeDirectory(user: AppUser): EmployeeDirectoryRecord[] {
       manager_name: employee.manager_id ? employeeNameById.get(employee.manager_id) ?? null : null,
       hire_date: null,
       tenure_years: employee.tenure_years,
-      is_leader: employee.role === "leader",
+      is_leader: employee.role === "hr_admin",
     })),
   );
 }
@@ -272,9 +406,11 @@ function getTenureYears(hireDate: string | null, tenureBand: string | null) {
   return numericMatch ? Number(numericMatch[1]) : null;
 }
 
-function resolveDirectoryRole(appRole: EmployeeDirectoryRecord["role"], isLeader: boolean) {
+function resolveDirectoryRole(appRole: EmployeeDirectoryRecord["role"] | "leader", isLeader: boolean) {
+  void isLeader;
+  if (appRole === "super_admin" || appRole === "leader") return "hr_admin";
   if (appRole !== "employee") return appRole;
-  return isLeader ? "leader" : appRole;
+  return appRole;
 }
 
 function normalizeTenureBand(value: string | null) {
@@ -288,7 +424,7 @@ function normalizeTenureBand(value: string | null) {
 function withCompanyScope(user: AppUser, filters: Partial<DashboardFilters>): Partial<DashboardFilters> {
   return {
     ...filters,
-    companyId: user.company_id,
+    companyId: user.company_id ?? filters.companyId ?? "",
   };
 }
 
@@ -379,6 +515,11 @@ function resolveArea(orgUnitId: string | null, orgUnitById: Map<string, OrgUnitA
   }
 
   return { id: currentUnit.id, label: currentUnit.name };
+}
+
+function isOrgUnitInScope(orgUnitId: string | null, scopeOrgUnitId: string, orgUnitRows: OrgUnitAreaRow[]) {
+  if (!orgUnitId) return false;
+  return getOrgUnitDescendantIds(scopeOrgUnitId, orgUnitRows).has(orgUnitId);
 }
 
 function buildAreaMoodSnapshot(
@@ -474,20 +615,15 @@ function buildAreaDashboardDetail(
   orgUnitRows: OrgUnitAreaRow[],
 ): AreaDashboardDetail | null {
   const orgUnitById = new Map(orgUnitRows.map((orgUnit) => [orgUnit.id, orgUnit]));
-  const targetEmployees = employees.filter((employee) => resolveArea(employee.org_unit_id, orgUnitById).id === areaId);
-  const targetCheckins = checkins.filter((checkin) => resolveArea(checkin.org_unit_id, orgUnitById).id === areaId);
+  const targetEmployees = employees.filter((employee) => isOrgUnitInScope(employee.org_unit_id, areaId, orgUnitRows));
+  const targetCheckins = checkins.filter((checkin) => isOrgUnitInScope(checkin.org_unit_id, areaId, orgUnitRows));
 
   if (targetEmployees.length === 0 && targetCheckins.length === 0) {
     return null;
   }
 
   const fallbackLabel = resolveAreaLabel(areaId, orgUnitRows);
-  const areaLabel =
-    targetEmployees[0]
-      ? resolveArea(targetEmployees[0].org_unit_id, orgUnitById).label
-      : targetCheckins[0]
-        ? resolveArea(targetCheckins[0].org_unit_id, orgUnitById).label
-        : fallbackLabel;
+  const areaLabel = fallbackLabel;
 
   const { areaMoods } = buildAreaMoodSnapshot(
     targetCheckins.map((checkin) => ({
@@ -560,13 +696,36 @@ function buildAreaDashboardDetail(
       participation: 0,
       weight: 0,
     };
+  const childAreas = orgUnitRows
+    .filter((orgUnit) => orgUnit.parent_id === areaId)
+    .map((orgUnit) => {
+      const childEmployees = employees.filter((employee) => isOrgUnitInScope(employee.org_unit_id, orgUnit.id, orgUnitRows));
+      const childCheckins = checkins.filter((checkin) => isOrgUnitInScope(checkin.org_unit_id, orgUnit.id, orgUnitRows));
+      const childCheckedEmployeeIds = new Set(childCheckins.map((checkin) => checkin.employee_id ?? `anonymous:${checkin.id}`));
+      const totalScore = childCheckins.reduce((sum, checkin) => sum + checkin.mood_score, 0);
+
+      return {
+        id: orgUnit.id,
+        label: orgUnit.name,
+        averageMood: childCheckins.length ? Number((totalScore / childCheckins.length).toFixed(1)) : 0,
+        weightedScore: targetCheckins.length ? Number((totalScore / targetCheckins.length).toFixed(2)) : 0,
+        checkins: childCheckins.length,
+        employees: childEmployees.length,
+        participation: percentage(childCheckedEmployeeIds.size, childEmployees.length),
+        weight: percentage(childEmployees.length, employees.length),
+      };
+    })
+    .filter((childArea) => childArea.employees > 0 || childArea.checkins > 0)
+    .sort((left, right) => right.employees - left.employees || left.label.localeCompare(right.label));
 
   return {
     area: {
       ...area,
       label: areaLabel,
+      weight: percentage(targetEmployees.length, employees.length),
     },
     totalEmployeesInScope: employees.length,
+    childAreas,
     employees: employeesWithMood,
     anonymousCheckins: targetCheckins
       .filter((checkin) => checkin.anonymous || !checkin.employee_id)
@@ -584,7 +743,7 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
   const visibleEmployees = filterEmployeesForUser(user).filter((employee) => {
     if (filters.companyId && employee.company_id !== filters.companyId) return false;
     if (filters.locationId && employee.location_id !== filters.locationId) return false;
-    if (filters.orgUnitId && employee.org_unit_id !== filters.orgUnitId) return false;
+    if (filters.orgUnitId && !matchesOrgUnitScope(employee.org_unit_id, filters.orgUnitId, mockOrgUnitRows)) return false;
     if (filters.gender && employee.gender !== filters.gender) return false;
     if (filters.ageRange && !matchesAgeRange(employee.age, filters.ageRange)) return false;
     if (filters.jobTitle && employee.job_title !== filters.jobTitle) return false;
@@ -610,7 +769,7 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
     if (!visibleEmployees.some((employee) => employee.company_id === alert.company_id)) return false;
     if (filters.companyId && alert.company_id !== filters.companyId) return false;
     if (filters.locationId && alert.location_id !== filters.locationId) return false;
-    if (filters.orgUnitId && alert.org_unit_id !== filters.orgUnitId) return false;
+    if (filters.orgUnitId && !matchesOrgUnitScope(alert.org_unit_id, filters.orgUnitId, mockOrgUnitRows)) return false;
     return true;
   });
 
@@ -693,33 +852,47 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
 
 async function getScopedEmployeeRows(user: AppUser, filters: Partial<DashboardFilters>) {
   const supabase = await createSupabaseClient();
-  const query = supabase
+  let employeesQuery = supabase
     .from("employees")
     .select(`
-      id,
-      company_id,
-      employee_profiles!employee_profiles_employee_id_fkey(
-        location_id,
-        org_unit_id,
-        manager_employee_id,
-        gender,
-        education_level,
-        job_title,
-        occupational_group,
-        work_schedule,
-        company_type,
-        age_band,
-        tenure_band
-      )
-    `)
-    .eq("company_id", user.company_id);
+        id,
+        company_id,
+        employee_profiles!employee_profiles_employee_id_fkey(
+          location_id,
+          org_unit_id,
+          manager_employee_id,
+          gender,
+          education_level,
+          job_title,
+          occupational_group,
+          work_schedule,
+          company_type,
+          age_band,
+          tenure_band
+        )
+      `);
+  let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name");
 
-  const { data, error } = await query;
+  if (user.company_id) {
+    employeesQuery = employeesQuery.eq("company_id", user.company_id);
+    orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
+  }
+
+  const [{ data, error }, orgUnitsResult] = await Promise.all([
+    employeesQuery,
+    orgUnitsQuery,
+  ]);
 
   if (error) {
     console.error("[getScopedEmployeeRows] Failed to read employees", error);
     return [];
   }
+
+  const orgUnitRows = ((orgUnitsResult.data ?? []) as OrgUnitAreaRow[]).map((orgUnit) => ({
+    id: orgUnit.id,
+    parent_id: orgUnit.parent_id,
+    name: orgUnit.name,
+  }));
 
   const rows: EmployeeScopeRow[] = ((data ?? []) as EmployeesSelectRow[]).map((row) => ({
     id: row.id,
@@ -739,11 +912,10 @@ async function getScopedEmployeeRows(user: AppUser, filters: Partial<DashboardFi
   }));
 
   return rows.filter((row) => {
-    if (user.role === "leader" && !(row.org_unit_id === user.org_unit_id || row.manager_employee_id === user.id || row.id === user.id)) return false;
     if (user.role === "employee" && row.id !== user.id) return false;
     if (filters.companyId && row.company_id !== filters.companyId) return false;
     if (filters.locationId && row.location_id !== filters.locationId) return false;
-    if (filters.orgUnitId && row.org_unit_id !== filters.orgUnitId) return false;
+    if (filters.orgUnitId && !matchesOrgUnitScope(row.org_unit_id, filters.orgUnitId, orgUnitRows)) return false;
     if (filters.gender && row.gender !== filters.gender) return false;
     if (filters.ageRange && row.age_band !== filters.ageRange) return false;
     if (filters.jobTitle && row.job_title !== filters.jobTitle) return false;
@@ -763,12 +935,11 @@ async function getSupabaseDashboardSnapshot(
   let query = supabase
     .from("vw_mood_checkins_enriched_secure")
     .select("*")
-    .eq("company_id", user.company_id)
     .order("checkin_at", { ascending: false });
 
+  if (user.company_id) query = query.eq("company_id", user.company_id);
   if (filters.dateRange) query = query.eq("checkin_date", filters.dateRange);
   if (filters.locationId) query = query.eq("location_id", filters.locationId);
-  if (filters.orgUnitId) query = query.eq("org_unit_id", filters.orgUnitId);
   if (filters.gender) query = query.eq("gender", filters.gender);
   if (filters.ageRange) query = query.eq("age_band", filters.ageRange);
   if (filters.jobTitle) query = query.eq("job_title", filters.jobTitle);
@@ -777,11 +948,19 @@ async function getSupabaseDashboardSnapshot(
   if (filters.occupationalGroup) query = query.eq("occupational_group", filters.occupationalGroup);
   if (filters.companyType) query = query.eq("company_type", filters.companyType);
 
+  let alertsQuery = supabase.from("alerts").select("id,status,company_id,location_id,org_unit_id");
+  let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name");
+
+  if (user.company_id) {
+    alertsQuery = alertsQuery.eq("company_id", user.company_id);
+    orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
+  }
+
   const [{ data, error }, scopedEmployeesResult, alertsResult, orgUnitsResult] = await Promise.all([
     query,
     getScopedEmployeeRows(user, filters),
-    supabase.from("alerts").select("id,status,company_id,location_id,org_unit_id").eq("company_id", user.company_id),
-    supabase.from("org_units").select("id,parent_id,name").eq("company_id", user.company_id),
+    alertsQuery,
+    orgUnitsQuery,
   ]);
 
   if (error) {
@@ -796,8 +975,12 @@ async function getSupabaseDashboardSnapshot(
     parent_id: orgUnit.parent_id,
     name: orgUnit.name,
   }));
+  if (rows.length === 0 && scopedEmployees.length === 0) {
+    return null;
+  }
   const filteredRows = rows.filter((row) => {
     if (filters.companyId && row.company_id !== filters.companyId) return false;
+    if (filters.orgUnitId && !matchesOrgUnitScope(row.org_unit_id, filters.orgUnitId, orgUnitRows)) return false;
     if (row.full_name === null && row.org_unit_id === null && row.location_id === null) return false;
     return true;
   });
@@ -811,7 +994,7 @@ async function getSupabaseDashboardSnapshot(
   const openAlerts = ((alertsResult.data ?? []) as AlertScopeRow[]).filter((alert) => {
     if (alert.status !== "open") return false;
     if (filters.locationId && alert.location_id !== filters.locationId) return false;
-    if (filters.orgUnitId && alert.org_unit_id !== filters.orgUnitId) return false;
+    if (filters.orgUnitId && !matchesOrgUnitScope(alert.org_unit_id, filters.orgUnitId, orgUnitRows)) return false;
     return true;
   });
 
@@ -865,14 +1048,19 @@ export async function getDashboardSnapshot(
   user: AppUser,
   filters: Partial<DashboardFilters> = {},
 ): Promise<DashboardSnapshot> {
-  const scopedFilters = withCompanyScope(user, filters);
+  const activeUser = FORCE_HR_DEMO_DATA ? demoUser(user) : user;
+  const scopedFilters = withCompanyScope(activeUser, filters);
+
+  if (FORCE_HR_DEMO_DATA) {
+    return buildMockSnapshot(activeUser, scopedFilters);
+  }
 
   if (hasEnvVars) {
-    const snapshot = await getSupabaseDashboardSnapshot(user, scopedFilters);
+    const snapshot = await getSupabaseDashboardSnapshot(activeUser, scopedFilters);
     if (snapshot) return snapshot;
   }
 
-  return buildMockSnapshot(user, scopedFilters);
+  return buildMockSnapshot(activeUser, scopedFilters);
 }
 
 function buildMockAreaDashboardDetail(user: AppUser, areaId: string): AreaDashboardDetail | null {
@@ -914,17 +1102,21 @@ async function getSupabaseAreaDashboardDetail(
   areaId: string,
 ): Promise<AreaDashboardDetail | null> {
   const supabase = await createSupabaseClient();
-  const query = supabase
+  let query = supabase
     .from("vw_mood_checkins_enriched_secure")
     .select("*")
-    .eq("company_id", user.company_id)
     .order("checkin_at", { ascending: false });
+
+  if (user.company_id) query = query.eq("company_id", user.company_id);
+
+  let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name");
+  if (user.company_id) orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
 
   const [{ data, error }, scopedEmployees, employeeDirectory, orgUnitsResult] = await Promise.all([
     query,
     getScopedEmployeeRows(user, {}),
     getEmployees(user),
-    supabase.from("org_units").select("id,parent_id,name").eq("company_id", user.company_id),
+    orgUnitsQuery,
   ]);
 
   if (error) {
@@ -938,6 +1130,10 @@ async function getSupabaseAreaDashboardDetail(
     parent_id: orgUnit.parent_id,
     name: orgUnit.name,
   }));
+
+  if (rows.length === 0 && scopedEmployees.length === 0 && employeeDirectory.length === 0) {
+    return buildMockAreaDashboardDetail(user, areaId);
+  }
 
   const filteredRows = rows.filter((row) => {
     if (row.full_name === null && row.org_unit_id === null && row.location_id === null) return false;
@@ -982,6 +1178,10 @@ export async function getAreaDashboardDetail(
   user: AppUser,
   areaId: string,
 ): Promise<AreaDashboardDetail | null> {
+  if (FORCE_HR_DEMO_DATA) {
+    return buildMockAreaDashboardDetail(demoUser(user), areaId);
+  }
+
   if (hasEnvVars) {
     return getSupabaseAreaDashboardDetail(user, areaId);
   }
@@ -990,9 +1190,10 @@ export async function getAreaDashboardDetail(
 }
 
 export async function getGeographySummary(user: AppUser): Promise<GeographySummary[]> {
+  const activeUser = FORCE_HR_DEMO_DATA ? demoUser(user) : user;
   const allowedLocationIds = new Set(
     locations
-      .filter((location) => location.company_id === user.company_id)
+      .filter((location) => !activeUser.company_id || location.company_id === activeUser.company_id)
       .map((location) => location.id),
   );
 
@@ -1000,18 +1201,81 @@ export async function getGeographySummary(user: AppUser): Promise<GeographySumma
 }
 
 export async function getOrgTree(user: AppUser): Promise<OrgTreeNode> {
-  void user;
+  if (FORCE_HR_DEMO_DATA) {
+    return orgTree;
+  }
+
+  if (hasEnvVars) {
+    const supabase = await createSupabaseClient();
+    let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name,unit_type,leader_employee_id");
+    let employeesQuery = supabase.from("employees").select("id,first_name,last_name");
+    let profilesQuery = supabase.from("employee_profiles").select("org_unit_id").eq("active", true);
+    let moodQuery = supabase.from("mood_checkins").select("org_unit_id,mood_score");
+
+    if (user.company_id) {
+      orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
+      employeesQuery = employeesQuery.eq("company_id", user.company_id);
+      profilesQuery = profilesQuery.eq("company_id", user.company_id);
+      moodQuery = moodQuery.eq("company_id", user.company_id);
+    }
+
+    const [orgUnitsResult, employeesResult, profilesResult, moodResult] = await Promise.all([
+      orgUnitsQuery,
+      employeesQuery,
+      profilesQuery,
+      moodQuery,
+    ]);
+
+    if (!orgUnitsResult.error && !employeesResult.error && !profilesResult.error && !moodResult.error) {
+      const orgUnitRows = ((orgUnitsResult.data ?? []) as OrgUnitAreaRow[]).map((orgUnit) => ({
+        id: orgUnit.id,
+        parent_id: orgUnit.parent_id,
+        name: orgUnit.name,
+        unit_type: orgUnit.unit_type,
+        leader_employee_id: orgUnit.leader_employee_id,
+      }));
+      const leaderNameById = new Map(
+        ((employeesResult.data ?? []) as EmployeeNameRow[]).map((employee) => [
+          employee.id,
+          getFullName(employee.first_name, employee.last_name),
+        ]),
+      );
+
+      return buildOrgTreeFromRows(
+        orgUnitRows,
+        leaderNameById,
+        (profilesResult.data ?? []) as OrgUnitEmployeeCountRow[],
+        (moodResult.data ?? []) as Array<{ org_unit_id: string | null; mood_score: number }>,
+      );
+    }
+
+    console.error("[getOrgTree] Failed to load org tree", {
+      orgUnitsError: orgUnitsResult.error,
+      employeesError: employeesResult.error,
+      profilesError: profilesResult.error,
+      moodError: moodResult.error,
+    });
+  }
+
   return orgTree;
 }
 
 export async function getAlerts(user: AppUser): Promise<Alert[]> {
+  const activeUser = FORCE_HR_DEMO_DATA ? demoUser(user) : user;
+  if (FORCE_HR_DEMO_DATA) {
+    return alerts.filter((alert) => !activeUser.company_id || alert.company_id === activeUser.company_id);
+  }
+
   if (hasEnvVars) {
     const supabase = await createSupabaseClient();
-    const { data, error } = await supabase
+    let query = supabase
       .from("alerts")
       .select("id,company_id,employee_id,org_unit_id,location_id,alert_type,status,title,message,created_at")
-      .eq("company_id", user.company_id)
       .order("created_at", { ascending: false });
+
+    if (user.company_id) query = query.eq("company_id", user.company_id);
+
+    const { data, error } = await query;
 
     if (!error) {
       return (data ?? []).map((alert) => ({
@@ -1031,16 +1295,19 @@ export async function getAlerts(user: AppUser): Promise<Alert[]> {
     console.error("[getAlerts] Failed to load alerts", error);
   }
 
-  return alerts.filter((alert) => alert.company_id === user.company_id);
+  return alerts.filter((alert) => !activeUser.company_id || alert.company_id === activeUser.company_id);
 }
 
 export async function getEmployees(user: AppUser): Promise<EmployeeDirectoryRecord[]> {
+  if (FORCE_HR_DEMO_DATA) {
+    return buildMockEmployeeDirectory(demoUser(user));
+  }
+
   if (hasEnvVars) {
     const supabase = await createSupabaseClient();
-    const [employeesResult, locationsResult, orgUnitsResult] = await Promise.all([
-      supabase
-        .from("employees")
-        .select(
+    let employeesQuery = supabase
+      .from("employees")
+      .select(
           `
             id,
             company_id,
@@ -1061,12 +1328,22 @@ export async function getEmployees(user: AppUser): Promise<EmployeeDirectoryReco
               is_leader
             )
           `,
-        )
-        .eq("company_id", user.company_id)
-        .order("last_name")
-        .order("first_name"),
-      supabase.from("locations").select("id,site_name").eq("company_id", user.company_id),
-      supabase.from("org_units").select("id,name").eq("company_id", user.company_id),
+      )
+      .order("last_name")
+      .order("first_name");
+    let locationsQuery = supabase.from("locations").select("id,site_name");
+    let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name");
+
+    if (user.company_id) {
+      employeesQuery = employeesQuery.eq("company_id", user.company_id);
+      locationsQuery = locationsQuery.eq("company_id", user.company_id);
+      orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
+    }
+
+    const [employeesResult, locationsResult, orgUnitsResult] = await Promise.all([
+      employeesQuery,
+      locationsQuery,
+      orgUnitsQuery,
     ]);
 
     if (!employeesResult.error && !locationsResult.error && !orgUnitsResult.error) {
@@ -1077,6 +1354,11 @@ export async function getEmployees(user: AppUser): Promise<EmployeeDirectoryReco
       const orgUnitById = new Map(
         ((orgUnitsResult.data ?? []) as Array<{ id: string; name: string }>).map((orgUnit) => [orgUnit.id, orgUnit.name]),
       );
+      const orgUnitRows = ((orgUnitsResult.data ?? []) as OrgUnitAreaRow[]).map((orgUnit) => ({
+        id: orgUnit.id,
+        parent_id: orgUnit.parent_id,
+        name: orgUnit.name,
+      }));
       const employeeNameById = new Map(
         employeeRows.map((row) => [row.id, getFullName(row.first_name, row.last_name)]),
       );
@@ -1109,6 +1391,7 @@ export async function getEmployees(user: AppUser): Promise<EmployeeDirectoryReco
             is_leader: profile?.is_leader ?? false,
           };
         }),
+        orgUnitRows,
       );
     }
 
@@ -1123,15 +1406,16 @@ export async function getEmployees(user: AppUser): Promise<EmployeeDirectoryReco
 }
 
 export async function getMoodContext(user: AppUser) {
-  const allowedEmployees = filterEmployeesForUser(user);
+  const activeUser = FORCE_HR_DEMO_DATA ? demoUser(user) : user;
+  const allowedEmployees = filterEmployeesForUser(activeUser);
   const companyLocationIds = new Set(
     locations
-      .filter((location) => location.company_id === user.company_id)
+      .filter((location) => !activeUser.company_id || location.company_id === activeUser.company_id)
       .map((location) => location.id),
   );
   const companyOrgUnitIds = new Set(
     orgUnits
-      .filter((orgUnit) => orgUnit.company_id === user.company_id)
+      .filter((orgUnit) => !activeUser.company_id || orgUnit.company_id === activeUser.company_id)
       .map((orgUnit) => orgUnit.id),
   );
 
@@ -1147,24 +1431,64 @@ export async function getMoodContext(user: AppUser) {
 
 
 export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOptions> {
+  const activeUser = FORCE_HR_DEMO_DATA ? demoUser(user) : user;
+  if (FORCE_HR_DEMO_DATA) {
+    return {
+      companies: companies
+        .filter((company) => !activeUser.company_id || company.id === activeUser.company_id)
+        .map((company) => ({ id: company.id, name: company.name })),
+      locations: locations
+        .filter((location) => !activeUser.company_id || location.company_id === activeUser.company_id)
+        .map((location) => ({ id: location.id, site_name: location.site_name })),
+      orgUnits: formatOrgUnitOptions(
+        orgUnits
+          .filter((orgUnit) => !activeUser.company_id || orgUnit.company_id === activeUser.company_id)
+          .map((orgUnit) => ({ id: orgUnit.id, parent_id: orgUnit.parent_id, name: orgUnit.name })),
+      ),
+      genders: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.gender))],
+      jobTitles: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.job_title))],
+      educationLevels: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.education))],
+      workShifts: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.work_shift))],
+      occupationalGroups: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.occupational_group))],
+      companyTypes: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.company_type))],
+    };
+  }
+
   if (hasEnvVars) {
     const supabase = await createSupabaseClient();
+    let companiesQuery = supabase.from("companies").select("id,name").order("name");
+    let locationsQuery = supabase.from("locations").select("id,site_name").order("site_name");
+    let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name").order("name");
+    let profilesQuery = supabase
+      .from("employee_profiles")
+      .select("gender,job_title,education_level,work_schedule,occupational_group,company_type");
+
+    if (user.company_id) {
+      companiesQuery = companiesQuery.eq("id", user.company_id);
+      locationsQuery = locationsQuery.eq("company_id", user.company_id);
+      orgUnitsQuery = orgUnitsQuery.eq("company_id", user.company_id);
+      profilesQuery = profilesQuery.eq("company_id", user.company_id);
+    }
+
     const [companiesResult, locationsResult, orgUnitsResult, profilesResult] = await Promise.all([
-      supabase.from("companies").select("id,name").eq("id", user.company_id).order("name"),
-      supabase.from("locations").select("id,site_name").eq("company_id", user.company_id).order("site_name"),
-      supabase.from("org_units").select("id,name").eq("company_id", user.company_id).order("name"),
-      supabase
-        .from("employee_profiles")
-        .select("gender,job_title,education_level,work_schedule,occupational_group,company_type")
-        .eq("company_id", user.company_id),
+      companiesQuery,
+      locationsQuery,
+      orgUnitsQuery,
+      profilesQuery,
     ]);
 
     if (!companiesResult.error && !locationsResult.error && !orgUnitsResult.error && !profilesResult.error) {
       const profiles = (profilesResult.data ?? []) as FilterProfileRow[];
+      const orgUnitRows = ((orgUnitsResult.data ?? []) as OrgUnitAreaRow[]).map((orgUnit) => ({
+        id: orgUnit.id,
+        parent_id: orgUnit.parent_id,
+        name: orgUnit.name,
+      }));
+
       return {
         companies: companiesResult.data ?? [],
         locations: locationsResult.data ?? [],
-        orgUnits: orgUnitsResult.data ?? [],
+        orgUnits: formatOrgUnitOptions(orgUnitRows),
         genders: [...new Set(profiles.map((item) => item.gender).filter((item): item is string => Boolean(item)))],
         jobTitles: [...new Set(profiles.map((item) => item.job_title).filter((item): item is string => Boolean(item)))],
         educationLevels: [...new Set(profiles.map((item) => item.education_level).filter((item): item is string => Boolean(item)))],
@@ -1176,16 +1500,18 @@ export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOp
   }
 
   return {
-    companies: companies.filter((company) => company.id === user.company_id).map((company) => ({
+    companies: companies.filter((company) => !user.company_id || company.id === user.company_id).map((company) => ({
       id: company.id,
       name: company.name,
     })),
     locations: locations
-      .filter((location) => location.company_id === user.company_id)
+      .filter((location) => !user.company_id || location.company_id === user.company_id)
       .map((location) => ({ id: location.id, site_name: location.site_name })),
-    orgUnits: orgUnits
-      .filter((orgUnit) => orgUnit.company_id === user.company_id)
-      .map((orgUnit) => ({ id: orgUnit.id, name: orgUnit.name })),
+    orgUnits: formatOrgUnitOptions(
+      orgUnits
+        .filter((orgUnit) => !user.company_id || orgUnit.company_id === user.company_id)
+        .map((orgUnit) => ({ id: orgUnit.id, parent_id: orgUnit.parent_id, name: orgUnit.name })),
+    ),
     genders: [...new Set(filterEmployeesForUser(user).map((employee) => employee.gender))],
     jobTitles: [...new Set(filterEmployeesForUser(user).map((employee) => employee.job_title))],
     educationLevels: [...new Set(filterEmployeesForUser(user).map((employee) => employee.education))],

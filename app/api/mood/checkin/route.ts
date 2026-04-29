@@ -37,6 +37,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
+  if (!user.company_id) {
+    return NextResponse.json({ error: "company-scope-required" }, { status: 403 });
+  }
+
   let payload: z.infer<typeof moodPayloadSchema>;
   try {
     payload = moodPayloadSchema.parse(await request.json());
