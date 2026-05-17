@@ -12,59 +12,66 @@ function getMoodStatus(score: number) {
 }
 
 function getMoodEmoji(score: number) {
-  if (score >= 4.3) return ":)";
-  if (score >= 3.7) return ":]";
-  if (score >= 3) return ":|";
-  if (score >= 2) return ":(";
-  return ":'(";
+  if (score >= 4.3) return "😄";
+  if (score >= 3.7) return "😊";
+  if (score >= 3) return "😐";
+  if (score >= 2) return "😟";
+  return "😢";
 }
 
 type Theme = {
   surface: string;
   glow: string;
   badge: string;
+  bar: string;
 };
 
 function getMoodTheme(score: number, hasData: boolean): Theme {
   if (!hasData) {
     return {
-      surface: "bg-brand-teal/24",
+      surface: "bg-brand-gray-soft",
       glow: "shadow-black/10",
-      badge: "bg-foreground/8 text-foreground/80",
+      badge: "bg-brand-gray/20 text-foreground/80",
+      bar: "bg-brand-gray",
     };
   }
   if (score >= 4.3) {
     return {
-      surface: "bg-brand-green/34",
-      glow: "shadow-black/10",
-      badge: "bg-foreground/10 text-foreground",
+      surface: "bg-brand-yellow/34",
+      glow: "shadow-brand-yellow/20",
+      badge: "bg-brand-yellow/45 text-foreground",
+      bar: "bg-brand-yellow",
     };
   }
   if (score >= 3.7) {
     return {
-      surface: "bg-brand-teal/30",
-      glow: "shadow-black/10",
-      badge: "bg-foreground/10 text-foreground",
+      surface: "bg-brand-green/30",
+      glow: "shadow-brand-green/20",
+      badge: "bg-brand-green/40 text-foreground",
+      bar: "bg-brand-green",
     };
   }
   if (score >= 3) {
     return {
-      surface: "bg-brand-yellow/34",
-      glow: "shadow-black/10",
-      badge: "bg-foreground/10 text-foreground",
+      surface: "bg-brand-teal/30",
+      glow: "shadow-brand-teal/20",
+      badge: "bg-brand-teal/40 text-foreground",
+      bar: "bg-brand-teal",
     };
   }
   if (score >= 2) {
     return {
       surface: "bg-brand-coral/26",
-      glow: "shadow-black/10",
-      badge: "bg-foreground/10 text-foreground",
+      glow: "shadow-brand-coral/20",
+      badge: "bg-brand-coral/35 text-foreground",
+      bar: "bg-brand-coral",
     };
   }
   return {
     surface: "bg-brand-purple/24",
-    glow: "shadow-black/10",
-    badge: "bg-foreground/10 text-foreground",
+    glow: "shadow-brand-purple/20",
+    badge: "bg-brand-purple/30 text-foreground",
+    bar: "bg-brand-purple",
   };
 }
 
@@ -125,7 +132,7 @@ export function AreaMoodBoard({ areas }: { areas: AreaMoodPoint[] }) {
                     </div>
                     <div className="h-1.5 w-full overflow-hidden rounded-full bg-foreground/15">
                       <div
-                        className="h-full rounded-full bg-foreground/70 transition-all duration-700"
+                        className={cn("h-full rounded-full transition-all duration-700", theme.bar)}
                         style={{ width: `${hasData ? barPct : 0}%` }}
                       />
                     </div>

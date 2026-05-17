@@ -14,7 +14,7 @@ export default async function SurveysPage() {
       <ModuleHeader
         eyebrow="Surveys"
         title="Clima laboral en formato encuesta"
-        description="El HR Admin puede programar pulsos simples para toda la empresa y cada colaborador los responde con una escala corta tipo MOOOD."
+        description=""
       />
       <SurveysWorkspace initialData={workspace} />
     </div>

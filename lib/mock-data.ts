@@ -53,7 +53,7 @@ const areaBlueprints = [
     id: "org-operations",
     name: "Operations",
     baseMood: 3.25,
-    leader: "emp-025",
+    leader: "emp-037",
     departments: [
       ["field", "Field Operations", ["North Field", "South Field"]],
       ["logistics", "Logistics", ["Routing", "Warehouse"]],
@@ -64,7 +64,7 @@ const areaBlueprints = [
     id: "org-sales",
     name: "Sales & Customer",
     baseMood: 3.75,
-    leader: "emp-049",
+    leader: "emp-109",
     departments: [
       ["enterprise", "Enterprise Sales", ["Key Accounts", "New Business"]],
       ["growth", "Growth", ["Demand Gen", "Partnerships"]],
@@ -75,7 +75,7 @@ const areaBlueprints = [
     id: "org-product",
     name: "Product & Data",
     baseMood: 4.35,
-    leader: "emp-073",
+    leader: "emp-157",
     departments: [
       ["platform", "Platform", ["Backend", "Frontend"]],
       ["data", "Data", ["Analytics", "ML Ops"]],
@@ -86,7 +86,7 @@ const areaBlueprints = [
     id: "org-finance",
     name: "Finance & Admin",
     baseMood: 3.95,
-    leader: "emp-097",
+    leader: "emp-217",
     departments: [
       ["accounting", "Accounting", ["Payables", "Reporting"]],
       ["procurement", "Procurement", ["Suppliers", "Contracts"]],
@@ -193,6 +193,13 @@ const genders: Employee["gender"][] = ["F", "M", "X"];
 const leafTeams = orgUnits.filter((orgUnit) => orgUnit.type === "team");
 const areaById = new Map<string, (typeof areaBlueprints)[number]>(areaBlueprints.map((area) => [area.id, area]));
 const orgUnitById = new Map(orgUnits.map((orgUnit) => [orgUnit.id, orgUnit]));
+const employeesPerTeamByArea: Record<(typeof areaBlueprints)[number]["id"], number> = {
+  "org-people": 6,
+  "org-operations": 12,
+  "org-sales": 8,
+  "org-product": 10,
+  "org-finance": 4,
+};
 
 function getTopAreaId(orgUnitId: string) {
   let current = orgUnitById.get(orgUnitId);
@@ -206,13 +213,17 @@ function getAreaName(orgUnitId: string) {
   return orgUnitById.get(getTopAreaId(orgUnitId))?.name ?? "General";
 }
 
-export const employees: Employee[] = leafTeams.flatMap((team, teamIndex) =>
-  Array.from({ length: 8 }, (_, memberIndex) => {
-    const index = teamIndex * 8 + memberIndex;
+let employeeIndex = 0;
+
+export const employees: Employee[] = leafTeams.flatMap((team, teamIndex) => {
+  const topAreaId = getTopAreaId(team.id);
+  const employeeCount = employeesPerTeamByArea[topAreaId as keyof typeof employeesPerTeamByArea] ?? 8;
+
+  return Array.from({ length: employeeCount }, (_, memberIndex) => {
+    const index = employeeIndex++;
     const id = `emp-${String(index + 1).padStart(3, "0")}`;
     const firstName = firstNames[index % firstNames.length];
     const lastName = lastNames[(index * 3) % lastNames.length];
-    const topAreaId = getTopAreaId(team.id);
     const teamSlug = team.id.split("-").slice(-2).join("-");
     const isLeader = memberIndex === 0 && teamIndex % 3 === 0;
 
@@ -235,8 +246,8 @@ export const employees: Employee[] = leafTeams.flatMap((team, teamIndex) =>
       company_type: index % 7 === 0 ? "external" : "internal",
       employment_status: "active",
     } satisfies Employee;
-  }),
-);
+  });
+});
 
 for (const area of areaBlueprints) {
   const leader = employees.find((employee) => employee.id === area.leader);

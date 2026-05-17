@@ -248,17 +248,19 @@ export type NotificationLog = {
 };
 
 export type DashboardFilters = {
-  dateRange: string;
-  companyId: string;
-  locationId: string;
-  orgUnitId: string;
-  gender: string;
-  ageRange: string;
-  jobTitle: string;
-  education: string;
-  workShift: string;
-  occupationalGroup: string;
-  companyType: string;
+  fromDate: string;
+  toDate: string;
+  dateRange?: string;
+  companyId?: string;
+  locationId?: string;
+  orgUnitId?: string;
+  gender?: string;
+  ageRange?: string;
+  jobTitle?: string;
+  education?: string;
+  workShift?: string;
+  occupationalGroup?: string;
+  companyType?: string;
 };
 
 export type DashboardFilterOptions = {
@@ -320,6 +322,8 @@ export type DashboardSnapshot = {
     employee: string;
     location: string;
     orgUnit: string;
+    area?: string;
+    subarea?: string;
     score: number;
     anonymous: boolean;
   }>;

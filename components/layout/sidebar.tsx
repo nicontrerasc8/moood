@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { AlertTriangle, Building2, ClipboardList, LayoutDashboard, Settings2, SmilePlus, Users } from "lucide-react";
+import { AlertTriangle, Building2, ClipboardList, LayoutDashboard, SmilePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Role } from "@/types/app";
 
@@ -11,8 +11,6 @@ const items = [
   { href: "/mood", label: "Mood", icon: SmilePlus, minimumRole: "employee" as Role },
   { href: "/surveys", label: "Encuestas", icon: ClipboardList, minimumRole: "employee" as Role },
   { href: "/alerts", label: "Alertas", icon: AlertTriangle, minimumRole: "hr_admin" as Role },
-  { href: "/employees", label: "Empleados", icon: Users, minimumRole: "hr_admin" as Role },
-  { href: "/settings", label: "Configuracion", icon: Settings2, minimumRole: "hr_admin" as Role },
 ];
 
 const roleWeight: Record<Role, number> = {

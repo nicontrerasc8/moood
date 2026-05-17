@@ -492,6 +492,14 @@ function buildScoreDistribution(items: MoodViewRow[]): ChartPoint[] {
   return Array.from(counts.entries()).map(([label, value]) => ({ label, value }));
 }
 
+function isDateInDashboardRange(date: string, filters: Partial<DashboardFilters>) {
+  const legacyDate = filters.dateRange;
+  if (legacyDate && date !== legacyDate) return false;
+  if (filters.fromDate && date < filters.fromDate) return false;
+  if (filters.toDate && date > filters.toDate) return false;
+  return true;
+}
+
 function resolveArea(orgUnitId: string | null, orgUnitById: Map<string, OrgUnitAreaRow>) {
   if (!orgUnitId) {
     return { id: "unassigned", label: "Sin area" };
@@ -517,6 +525,36 @@ function resolveArea(orgUnitId: string | null, orgUnitById: Map<string, OrgUnitA
   return { id: currentUnit.id, label: currentUnit.name };
 }
 
+function resolveAreaInScope(
+  orgUnitId: string | null,
+  orgUnitById: Map<string, OrgUnitAreaRow>,
+  scopeOrgUnitId?: string | null,
+) {
+  if (!scopeOrgUnitId) return resolveArea(orgUnitId, orgUnitById);
+  if (!orgUnitId) return { id: "unassigned", label: "Sin area" };
+
+  const startingUnit = orgUnitById.get(orgUnitId);
+  if (!startingUnit) return { id: orgUnitId, label: "Sin area" };
+  if (startingUnit.id === scopeOrgUnitId) return { id: startingUnit.id, label: startingUnit.name };
+
+  let currentUnit = startingUnit;
+  const visited = new Set<string>([startingUnit.id]);
+
+  while (currentUnit.parent_id && currentUnit.parent_id !== scopeOrgUnitId) {
+    const parentUnit = orgUnitById.get(currentUnit.parent_id);
+    if (!parentUnit || visited.has(parentUnit.id)) break;
+
+    currentUnit = parentUnit;
+    visited.add(parentUnit.id);
+  }
+
+  if (currentUnit.parent_id === scopeOrgUnitId) {
+    return { id: currentUnit.id, label: currentUnit.name };
+  }
+
+  return resolveArea(orgUnitId, orgUnitById);
+}
+
 function isOrgUnitInScope(orgUnitId: string | null, scopeOrgUnitId: string, orgUnitRows: OrgUnitAreaRow[]) {
   if (!orgUnitId) return false;
   return getOrgUnitDescendantIds(scopeOrgUnitId, orgUnitRows).has(orgUnitId);
@@ -526,6 +564,7 @@ function buildAreaMoodSnapshot(
   rows: AreaMetricRow[],
   scopedEmployees: Array<Pick<EmployeeScopeRow, "id" | "org_unit_id">>,
   orgUnitRows: OrgUnitAreaRow[],
+  scopeOrgUnitId?: string | null,
 ) {
   const orgUnitById = new Map(orgUnitRows.map((orgUnit) => [orgUnit.id, orgUnit]));
   const grouped = new Map<
@@ -558,12 +597,12 @@ function buildAreaMoodSnapshot(
   };
 
   for (const employee of scopedEmployees) {
-    const area = resolveArea(employee.org_unit_id, orgUnitById);
+    const area = resolveAreaInScope(employee.org_unit_id, orgUnitById, scopeOrgUnitId);
     ensureAreaGroup(area).employeeIds.add(employee.id);
   }
 
   for (const row of rows) {
-    const area = resolveArea(row.org_unit_id, orgUnitById);
+    const area = resolveAreaInScope(row.org_unit_id, orgUnitById, scopeOrgUnitId);
     const group = ensureAreaGroup(area);
 
     group.totalScore += row.mood_score;
@@ -625,20 +664,6 @@ function buildAreaDashboardDetail(
   const fallbackLabel = resolveAreaLabel(areaId, orgUnitRows);
   const areaLabel = fallbackLabel;
 
-  const { areaMoods } = buildAreaMoodSnapshot(
-    targetCheckins.map((checkin) => ({
-      id: checkin.id,
-      employee_id: checkin.anonymous ? null : checkin.employee_id,
-      org_unit_id: checkin.org_unit_id,
-      mood_score: checkin.mood_score,
-    })),
-    targetEmployees.map((employee) => ({
-      id: employee.id,
-      org_unit_id: employee.org_unit_id,
-    })),
-    orgUnitRows,
-  );
-
   const identifiedCheckins = targetCheckins
     .filter((checkin) => checkin.employee_id && !checkin.anonymous)
     .sort((left, right) => right.checkin_at.localeCompare(left.checkin_at));
@@ -685,17 +710,18 @@ function buildAreaDashboardDetail(
       return left.employee.localeCompare(right.employee);
     });
 
-  const area =
-    areaMoods.find((item) => item.id === areaId) ?? {
-      id: areaId,
-      label: areaLabel,
-      averageMood: 0,
-      weightedScore: 0,
-      checkins: targetCheckins.length,
-      employees: targetEmployees.length,
-      participation: 0,
-      weight: 0,
-    };
+  const targetCheckedEmployeeIds = new Set(targetCheckins.map((checkin) => checkin.employee_id ?? `anonymous:${checkin.id}`));
+  const targetTotalScore = targetCheckins.reduce((sum, checkin) => sum + checkin.mood_score, 0);
+  const area = {
+    id: areaId,
+    label: areaLabel,
+    averageMood: targetCheckins.length ? Number((targetTotalScore / targetCheckins.length).toFixed(1)) : 0,
+    weightedScore: targetCheckins.length ? Number(targetTotalScore.toFixed(2)) : 0,
+    checkins: targetCheckins.length,
+    employees: targetEmployees.length,
+    participation: percentage(targetCheckedEmployeeIds.size, targetEmployees.length),
+    weight: 0,
+  };
   const childAreas = orgUnitRows
     .filter((orgUnit) => orgUnit.parent_id === areaId)
     .map((orgUnit) => {
@@ -761,7 +787,7 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
 
   const filteredCheckins = moodCheckins.filter((checkin) => {
     if (!employeeIds.has(checkin.employee_id)) return false;
-    if (filters.dateRange && !checkin.checked_at.startsWith(filters.dateRange)) return false;
+    if (!isDateInDashboardRange(checkin.checked_at.slice(0, 10), filters)) return false;
     return true;
   });
 
@@ -792,6 +818,7 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
       parent_id: orgUnit.parent_id,
       name: orgUnit.name,
     })),
+    filters.orgUnitId,
   );
   const weightedAverageMoodPercent = Number((weightedAverageMood * 20).toFixed(1));
 
@@ -839,6 +866,14 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
     byOccupationalGroup: buildAverageChart(filteredCheckins.map((item) => ({ ...item, mood_score: item.score })), (item) => employeeById.get(item.employee_id)?.occupational_group ?? null),
     byCompanyType: buildAverageChart(filteredCheckins.map((item) => ({ ...item, mood_score: item.score })), (item) => employeeById.get(item.employee_id)?.company_type ?? null),
     detailedRows: filteredCheckins.slice().sort((left, right) => right.checked_at.localeCompare(left.checked_at)).map((checkin) => ({
+      ...(() => {
+        const orgUnit = orgUnitById.get(checkin.org_unit_id);
+        const area = resolveAreaInScope(checkin.org_unit_id, orgUnitById, filters.orgUnitId);
+        return {
+          area: area.label,
+          subarea: orgUnit?.name ?? "Sin unidad",
+        };
+      })(),
       id: checkin.id,
       date: checkin.checked_at.slice(0, 16).replace("T", " "),
       employee: checkin.anonymous ? "Anonimizado" : employeeById.get(checkin.employee_id)?.full_name ?? "Sin nombre",
@@ -939,6 +974,8 @@ async function getSupabaseDashboardSnapshot(
 
   if (user.company_id) query = query.eq("company_id", user.company_id);
   if (filters.dateRange) query = query.eq("checkin_date", filters.dateRange);
+  if (filters.fromDate) query = query.gte("checkin_date", filters.fromDate);
+  if (filters.toDate) query = query.lte("checkin_date", filters.toDate);
   if (filters.locationId) query = query.eq("location_id", filters.locationId);
   if (filters.gender) query = query.eq("gender", filters.gender);
   if (filters.ageRange) query = query.eq("age_band", filters.ageRange);
@@ -1012,6 +1049,7 @@ async function getSupabaseDashboardSnapshot(
       org_unit_id: employee.org_unit_id,
     })),
     orgUnitRows,
+    filters.orgUnitId,
   );
   const weightedAverageMoodPercent = Number((weightedAverageMood * 20).toFixed(1));
 
@@ -1038,6 +1076,8 @@ async function getSupabaseDashboardSnapshot(
       employee: row.full_name ?? "Anonimizado",
       location: row.site_name ?? "Sin ubicacion",
       orgUnit: row.org_unit_name ?? "Sin unidad",
+      area: resolveAreaInScope(row.org_unit_id, new Map(orgUnitRows.map((orgUnit) => [orgUnit.id, orgUnit])), filters.orgUnitId).label,
+      subarea: row.org_unit_name ?? "Sin unidad",
       score: row.mood_score,
       anonymous: row.anonymity_mode === "anonymous" || row.full_name === null,
     })),

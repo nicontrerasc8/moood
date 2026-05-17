@@ -9,6 +9,8 @@ export async function GET(request: Request) {
   }
   const { searchParams } = new URL(request.url);
   const data = await getDashboardSnapshot(user, {
+    fromDate: searchParams.get("fromDate") ?? "",
+    toDate: searchParams.get("toDate") ?? "",
     dateRange: searchParams.get("dateRange") ?? "",
     companyId: user.company_id ?? "",
     locationId: searchParams.get("locationId") ?? "",

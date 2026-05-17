@@ -2,7 +2,17 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarDays, CheckCircle2, ClipboardList, Copy, Plus, Send, Shield, Sparkles, Trash2 } from "lucide-react";
+import {
+  CalendarDays,
+  CheckCircle2,
+  ClipboardList,
+  Copy,
+  Plus,
+  Send,
+  Shield,
+  Sparkles,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,17 +22,45 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { SurveyResultsDashboard } from "@/components/surveys/survey-results-dashboard";
-import { climateQuestionBank, climateScaleLabels, climateScaleOptions } from "@/lib/surveys/climate-template";
+import {
+  climateQuestionBank,
+  climateScaleLabels,
+  climateScaleOptions,
+} from "@/lib/surveys/climate-template";
 import { cn } from "@/lib/utils";
-import type { SurveyInboxItem, SurveyQuestionType, SurveyResultSummary, SurveyWorkspace } from "@/types/app";
+import type {
+  SurveyInboxItem,
+  SurveyQuestionType,
+  SurveyResultSummary,
+  SurveyWorkspace,
+} from "@/types/app";
 
-const scaleButtonStyles = {
-  1: "border-rose-200 bg-rose-50 text-rose-700",
-  2: "border-orange-200 bg-orange-50 text-orange-700",
-  3: "border-slate-200 bg-slate-50 text-slate-700",
-  4: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  5: "border-teal-200 bg-teal-50 text-teal-700",
-} satisfies Record<number, string>;
+// ─── Scale colors ────────────────────────────────────────────────────────────
+
+const scaleButtonStyles: Record<number, { base: string; active: string }> = {
+  1: {
+    base: "border-rose-100 bg-rose-50 text-rose-800",
+    active: "border-rose-400 bg-rose-100 ring-2 ring-rose-300/40",
+  },
+  2: {
+    base: "border-amber-100 bg-amber-50 text-amber-800",
+    active: "border-amber-400 bg-amber-100 ring-2 ring-amber-300/40",
+  },
+  3: {
+    base: "border-slate-200 bg-slate-50 text-slate-700",
+    active: "border-slate-400 bg-slate-100 ring-2 ring-slate-300/40",
+  },
+  4: {
+    base: "border-emerald-100 bg-emerald-50 text-emerald-800",
+    active: "border-emerald-400 bg-emerald-100 ring-2 ring-emerald-300/40",
+  },
+  5: {
+    base: "border-teal-100 bg-teal-50 text-teal-800",
+    active: "border-teal-400 bg-teal-100 ring-2 ring-teal-300/40",
+  },
+};
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getSubmitErrorMessage(
   body: { error?: string; questionId?: string } | null,
@@ -30,17 +68,19 @@ function getSubmitErrorMessage(
 ) {
   if (!body?.error) return "No se pudo enviar la encuesta.";
 
-  const question = survey?.questions.find((item) => item.id === body.questionId);
-  const questionLabel = question ? ` "${question.question_text}"` : "";
+  const question = survey?.questions.find((q) => q.id === body.questionId);
+  const label = question ? ` "${question.question_text}"` : "";
 
-  if (body.error === "missing-answer" || body.error === "invalid-scale-answer" || body.error === "invalid-text-answer") {
-    return `Responde la pregunta obligatoria${questionLabel} antes de enviar la encuesta.`;
+  if (
+    body.error === "missing-answer" ||
+    body.error === "invalid-scale-answer" ||
+    body.error === "invalid-text-answer"
+  ) {
+    return `Responde la pregunta obligatoria${label} antes de enviar.`;
   }
-
   if (body.error === "empty-submission") {
-    return "Completa al menos una respuesta antes de enviar la encuesta.";
+    return "Completa al menos una respuesta antes de enviar.";
   }
-
   return body.error;
 }
 
@@ -65,30 +105,6 @@ function isSurveyCompleted(survey: SurveyInboxItem) {
   return survey.assignment_status === "submitted";
 }
 
-type DraftSurveyQuestion = {
-  id: string;
-  text: string;
-  dimension: string;
-  type: Extract<SurveyQuestionType, "scale" | "text">;
-  required: boolean;
-  enabled: boolean;
-};
-
-function createDraftQuestionId() {
-  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function getDefaultDraftQuestions(): DraftSurveyQuestion[] {
-  return climateQuestionBank.map((question) => ({
-    id: question.id,
-    text: question.text,
-    dimension: question.dimension,
-    type: question.type,
-    required: question.required,
-    enabled: true,
-  }));
-}
-
 function clampScale(value: number) {
   return Math.max(1, Math.min(5, Math.round(value)));
 }
@@ -104,6 +120,54 @@ function buildDistribution(count: number, average: number) {
   });
 }
 
+// ─── Draft questions ──────────────────────────────────────────────────────────
+
+type DraftSurveyQuestion = {
+  id: string;
+  text: string;
+  dimension: string;
+  type: Extract<SurveyQuestionType, "scale" | "text">;
+  required: boolean;
+  enabled: boolean;
+};
+
+function createDraftQuestionId() {
+  return `draft-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getDefaultDraftQuestions(): DraftSurveyQuestion[] {
+  return climateQuestionBank.map((q) => ({
+    id: q.id,
+    text: q.text,
+    dimension: q.dimension,
+    type: q.type,
+    required: q.required,
+    enabled: true,
+  }));
+}
+
+// ─── Status badge ─────────────────────────────────────────────────────────────
+
+function StatusBadge({ label }: { label: string }) {
+  const styles: Record<string, string> = {
+    Respondida: "bg-slate-100 text-slate-600 border-slate-200",
+    Programada: "bg-sky-50 text-sky-700 border-sky-200",
+    Pendiente: "bg-amber-50 text-amber-700 border-amber-200",
+  };
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-medium",
+        styles[label] ?? "bg-slate-100 text-slate-600 border-slate-200",
+      )}
+    >
+      {label}
+    </span>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace }) {
   const router = useRouter();
   const [workspace, setWorkspace] = useState(initialData);
@@ -112,12 +176,15 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
   const [createError, setCreateError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [activeSurveyId, setActiveSurveyId] = useState<string | null>(
-    initialData.inbox.find((survey) => !isSurveyCompleted(survey))?.id ?? initialData.inbox[0]?.id ?? null,
+    initialData.inbox.find((s) => !isSurveyCompleted(s))?.id ??
+      initialData.inbox[0]?.id ??
+      null,
   );
-  const [draftQuestions, setDraftQuestions] = useState<DraftSurveyQuestion[]>(getDefaultDraftQuestions);
+  const [draftQuestions, setDraftQuestions] =
+    useState<DraftSurveyQuestion[]>(getDefaultDraftQuestions);
   const [createForm, setCreateForm] = useState({
     title: "Pulso de clima laboral",
-    description: "Encuesta corta para medir percepcion del clima y bienestar del equipo.",
+    description: "Encuesta corta para medir percepción del clima y bienestar del equipo.",
     startDate: getToday(),
     endDate: addDays(getToday(), 7),
     isAnonymous: true,
@@ -129,12 +196,11 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
   }, [initialData]);
 
   useEffect(() => {
-    const nextActiveSurvey =
-      workspace.inbox.find((survey) => survey.id === activeSurveyId) ??
-      workspace.inbox.find((survey) => !isSurveyCompleted(survey)) ??
+    const next =
+      workspace.inbox.find((s) => s.id === activeSurveyId) ??
+      workspace.inbox.find((s) => !isSurveyCompleted(s)) ??
       workspace.inbox[0];
-
-    setActiveSurveyId(nextActiveSurvey?.id ?? null);
+    setActiveSurveyId(next?.id ?? null);
   }, [workspace, activeSurveyId]);
 
   useEffect(() => {
@@ -142,33 +208,35 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     setSubmitError(null);
   }, [activeSurveyId]);
 
-  const activeSurvey = workspace.inbox.find((survey) => survey.id === activeSurveyId) ?? null;
-  const createdPendingResponses = workspace.created.reduce((total, survey) => {
-    return total + Math.max(0, survey.assigned_count - survey.submitted_count);
+  const activeSurvey = workspace.inbox.find((s) => s.id === activeSurveyId) ?? null;
+
+  const createdPendingResponses = workspace.created.reduce((total, s) => {
+    return total + Math.max(0, s.assigned_count - s.submitted_count);
   }, 0);
+
   const hasIncompleteRequiredAnswers = activeSurvey
-    ? activeSurvey.questions.some((question) => {
-        if (!question.required) return false;
-
-        if (question.question_type === "scale") {
-          return typeof answers[question.id] !== "number";
-        }
-
-        return typeof answers[question.id] !== "string" || String(answers[question.id]).trim().length === 0;
+    ? activeSurvey.questions.some((q) => {
+        if (!q.required) return false;
+        if (q.question_type === "scale") return typeof answers[q.id] !== "number";
+        return typeof answers[q.id] !== "string" || String(answers[q.id]).trim().length === 0;
       })
     : false;
 
-  const enabledDraftQuestions = draftQuestions.filter((question) => question.enabled && question.text.trim().length > 0);
+  const enabledDraftQuestions = draftQuestions.filter(
+    (q) => q.enabled && q.text.trim().length > 0,
+  );
 
-  function updateDraftQuestion(questionId: string, patch: Partial<DraftSurveyQuestion>) {
-    setDraftQuestions((current) =>
-      current.map((question) => (question.id === questionId ? { ...question, ...patch } : question)),
+  // ── Draft helpers ──────────────────────────────────────────────────────────
+
+  function updateDraftQuestion(id: string, patch: Partial<DraftSurveyQuestion>) {
+    setDraftQuestions((cur) =>
+      cur.map((q) => (q.id === id ? { ...q, ...patch } : q)),
     );
   }
 
   function addDraftQuestion() {
-    setDraftQuestions((current) => [
-      ...current,
+    setDraftQuestions((cur) => [
+      ...cur,
       {
         id: createDraftQuestionId(),
         text: "",
@@ -180,36 +248,35 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     ]);
   }
 
-  function duplicateDraftQuestion(question: DraftSurveyQuestion) {
-    setDraftQuestions((current) => [
-      ...current,
-      {
-        ...question,
-        id: createDraftQuestionId(),
-        text: `${question.text} copia`,
-      },
+  function duplicateDraftQuestion(q: DraftSurveyQuestion) {
+    setDraftQuestions((cur) => [
+      ...cur,
+      { ...q, id: createDraftQuestionId(), text: `${q.text} (copia)` },
     ]);
   }
 
-  function removeDraftQuestion(questionId: string) {
-    setDraftQuestions((current) => current.filter((question) => question.id !== questionId));
+  function removeDraftQuestion(id: string) {
+    setDraftQuestions((cur) => cur.filter((q) => q.id !== id));
   }
+
+  // ── Optimistic survey builder ──────────────────────────────────────────────
 
   function buildOptimisticSurvey(): { inboxItem: SurveyInboxItem; result: SurveyResultSummary } {
     const surveyId = `demo-survey-${Date.now()}`;
-    const questions = enabledDraftQuestions.map((question, index) => ({
-      id: `${surveyId}-q-${index + 1}`,
+    const questions = enabledDraftQuestions.map((q, i) => ({
+      id: `${surveyId}-q-${i + 1}`,
       survey_id: surveyId,
-      question_text: question.text.trim(),
-      question_type: question.type,
-      dimension: question.dimension.trim() || null,
-      sort_order: index + 1,
-      required: question.required,
-      options: question.type === "scale" ? [...climateScaleOptions] : null,
+      question_text: q.text.trim(),
+      question_type: q.type,
+      dimension: q.dimension.trim() || null,
+      sort_order: i + 1,
+      required: q.required,
+      options: q.type === "scale" ? [...climateScaleOptions] : null,
     }));
     const assignedCount = workspace.created[0]?.assigned_count ?? 240;
     const submittedCount = Math.round(assignedCount * 0.68);
     const participationRate = Math.round((submittedCount / assignedCount) * 100);
+
     const inboxItem: SurveyInboxItem = {
       id: surveyId,
       company_id: "comp-demo-andina",
@@ -231,8 +298,9 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
       assigned_count: assignedCount,
       submitted_count: submittedCount,
     };
+
     const templateAreas = workspace.results[0]?.area_comparisons ?? [];
-    const scaleQuestions = questions.filter((question) => question.question_type === "scale");
+    const scaleQuestions = questions.filter((q) => q.question_type === "scale");
     const averageScore = 3.8;
 
     return {
@@ -251,39 +319,62 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
         response_count: submittedCount * questions.length,
         average_score: averageScore,
         latest_response_at: new Date().toISOString(),
-        questions: questions.map((question, questionIndex) => {
-          const questionAverage = question.question_type === "scale" ? Number((averageScore + (questionIndex % 3 - 1) * 0.18).toFixed(1)) : null;
+        questions: questions.map((q, qi) => {
+          const avg =
+            q.question_type === "scale"
+              ? Number((averageScore + (qi % 3 - 1) * 0.18).toFixed(1))
+              : null;
           return {
-            question_id: question.id,
-            question_text: question.question_text,
-            question_type: question.question_type,
-            dimension: question.dimension,
-            required: question.required,
-            response_count: question.question_type === "scale" ? submittedCount : Math.round(submittedCount * 0.55),
-            average_score: questionAverage,
-            score_distribution: questionAverage ? buildDistribution(submittedCount, questionAverage) : [],
-            responses: Array.from({ length: question.question_type === "scale" ? 8 : 5 }, (_, index) => ({
-              id: `${surveyId}-resp-${question.id}-${index}`,
-              submitted_at: new Date(Date.now() - index * 3600_000).toISOString(),
-              responder_label: createForm.isAnonymous ? "Anonimo" : `Colaborador ${index + 1}`,
-              anonymity_mode: createForm.isAnonymous ? "anonymous" : "identified",
-              response_text: question.question_type === "text" ? ["Mas claridad de prioridades.", "Buen ritmo, pero falta coordinacion.", "Revisar carga en cierres.", "Mejorar feedback entre equipos.", "Mantener espacios de escucha."][index] : null,
-              response_numeric: question.question_type === "scale" ? clampScale((questionAverage ?? averageScore) + (index % 3 - 1) * 0.4) : null,
-            })),
+            question_id: q.id,
+            question_text: q.question_text,
+            question_type: q.question_type,
+            dimension: q.dimension,
+            required: q.required,
+            response_count:
+              q.question_type === "scale"
+                ? submittedCount
+                : Math.round(submittedCount * 0.55),
+            average_score: avg,
+            score_distribution: avg ? buildDistribution(submittedCount, avg) : [],
+            responses: Array.from(
+              { length: q.question_type === "scale" ? 8 : 5 },
+              (_, i) => ({
+                id: `${surveyId}-resp-${q.id}-${i}`,
+                submitted_at: new Date(Date.now() - i * 3_600_000).toISOString(),
+                responder_label: createForm.isAnonymous
+                  ? "Anónimo"
+                  : `Colaborador ${i + 1}`,
+                anonymity_mode: createForm.isAnonymous ? "anonymous" : "identified",
+                response_text:
+                  q.question_type === "text"
+                    ? [
+                        "Más claridad de prioridades.",
+                        "Buen ritmo, pero falta coordinación.",
+                        "Revisar carga en cierres.",
+                        "Mejorar feedback entre equipos.",
+                        "Mantener espacios de escucha.",
+                      ][i]
+                    : null,
+                response_numeric:
+                  q.question_type === "scale"
+                    ? clampScale((avg ?? averageScore) + (i % 3 - 1) * 0.4)
+                    : null,
+              }),
+            ),
           };
         }),
-        area_comparisons: templateAreas.map((area, areaIndex) => ({
+        area_comparisons: templateAreas.map((area, ai) => ({
           ...area,
-          average_score: Number((3.5 + areaIndex * 0.18).toFixed(1)),
-          questions: scaleQuestions.map((question, questionIndex) => {
-            const areaAverage = Number((3.5 + areaIndex * 0.18 + (questionIndex % 3 - 1) * 0.12).toFixed(1));
+          average_score: Number((3.5 + ai * 0.18).toFixed(1)),
+          questions: scaleQuestions.map((q, qi) => {
+            const areaAvg = Number((3.5 + ai * 0.18 + (qi % 3 - 1) * 0.12).toFixed(1));
             return {
-              question_id: question.id,
-              question_text: question.question_text,
-              dimension: question.dimension,
+              question_id: q.id,
+              question_text: q.question_text,
+              dimension: q.dimension,
               response_count: area.submitted_count,
-              average_score: areaAverage,
-              score_distribution: buildDistribution(area.submitted_count, areaAverage),
+              average_score: areaAvg,
+              score_distribution: buildDistribution(area.submitted_count, areaAvg),
             };
           }),
         })),
@@ -291,18 +382,14 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     };
   }
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
   function setScaleAnswer(questionId: string, value: number) {
-    setAnswers((current) => ({
-      ...current,
-      [questionId]: value,
-    }));
+    setAnswers((cur) => ({ ...cur, [questionId]: value }));
   }
 
   function setTextAnswer(questionId: string, value: string) {
-    setAnswers((current) => ({
-      ...current,
-      [questionId]: value,
-    }));
+    setAnswers((cur) => ({ ...cur, [questionId]: value }));
   }
 
   function handleCreateSurvey(event: React.FormEvent<HTMLFormElement>) {
@@ -312,35 +399,41 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     startCreateTransition(async () => {
       const response = await fetch("/api/surveys", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...createForm,
-          questions: enabledDraftQuestions.map((question) => ({
-            text: question.text,
-            dimension: question.dimension,
-            type: question.type,
-            required: question.required,
+          questions: enabledDraftQuestions.map((q) => ({
+            text: q.text,
+            dimension: q.dimension,
+            type: q.type,
+            required: q.required,
           })),
-          selectedQuestionIds: enabledDraftQuestions.map((question) => question.id),
+          selectedQuestionIds: enabledDraftQuestions.map((q) => q.id),
         }),
       });
 
       if (!response.ok) {
         const body = await response.json().catch(() => null);
         if (body?.error && body.error !== "unexpected-error") {
-          setCreateError(body?.details?.formErrors?.[0] || body?.details?.fieldErrors?.endDate?.[0] || body?.error || "No se pudo programar la encuesta.");
+          setCreateError(
+            body?.details?.formErrors?.[0] ||
+              body?.details?.fieldErrors?.endDate?.[0] ||
+              body?.error ||
+              "No se pudo programar la encuesta.",
+          );
           return;
         }
       }
 
       const optimistic = buildOptimisticSurvey();
-      setWorkspace((current) => ({
-        ...current,
-        inbox: [optimistic.inboxItem, ...current.inbox],
-        created: [{ ...optimistic.inboxItem, assignment_id: null, assignment_status: null }, ...current.created],
-        results: [optimistic.result, ...current.results],
+      setWorkspace((cur) => ({
+        ...cur,
+        inbox: [optimistic.inboxItem, ...cur.inbox],
+        created: [
+          { ...optimistic.inboxItem, assignment_id: null, assignment_status: null },
+          ...cur.created,
+        ],
+        results: [optimistic.result, ...cur.results],
       }));
       setActiveSurveyId(optimistic.inboxItem.id);
       router.refresh();
@@ -352,21 +445,21 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     setSubmitError(null);
 
     if (hasIncompleteRequiredAnswers) {
-      setSubmitError("Responde todas las preguntas obligatorias antes de enviar la encuesta.");
+      setSubmitError("Responde todas las preguntas obligatorias antes de enviar.");
       return;
     }
 
     startSubmitTransition(async () => {
       const response = await fetch(`/api/surveys/${activeSurvey.id}/submit`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          answers: activeSurvey.questions.map((question) => ({
-            questionId: question.id,
-            value: typeof answers[question.id] === "number" ? Number(answers[question.id]) : undefined,
-            text: typeof answers[question.id] === "string" ? String(answers[question.id]) : undefined,
+          answers: activeSurvey.questions.map((q) => ({
+            questionId: q.id,
+            value:
+              typeof answers[q.id] === "number" ? Number(answers[q.id]) : undefined,
+            text:
+              typeof answers[q.id] === "string" ? String(answers[q.id]) : undefined,
           })),
         }),
       });
@@ -381,342 +474,467 @@ export function SurveysWorkspace({ initialData }: { initialData: SurveyWorkspace
     });
   }
 
-  const workspaceContent = (
-    <div className="w-full space-y-6">
-      {workspace.canManage ? (
-        <div className="grid gap-4 md:grid-cols-3">
-          <Card className="rounded-[1.75rem] border-white/70 bg-white/90">
-            <CardHeader className="pb-3">
-              <CardDescription>Encuestas activas</CardDescription>
-              <CardTitle className="text-3xl">{workspace.created.length}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="rounded-[1.75rem] border-white/70 bg-white/90">
-            <CardHeader className="pb-3">
-              <CardDescription>Respuestas pendientes</CardDescription>
-              <CardTitle className="text-3xl">{createdPendingResponses}</CardTitle>
-            </CardHeader>
-          </Card>
-          <Card className="rounded-[1.75rem] border-white/70 bg-white/90">
-            <CardHeader className="pb-3">
-              <CardDescription>Formato</CardDescription>
-              <CardTitle className="text-lg">Pulso simple tipo MOOOD</CardTitle>
-            </CardHeader>
-          </Card>
+  // ── Stats bar ──────────────────────────────────────────────────────────────
+
+  const statsBar = workspace.canManage ? (
+    <div className="grid gap-3 sm:grid-cols-3">
+      {[
+        { label: "Encuestas activas", value: workspace.created.length },
+        { label: "Respuestas pendientes", value: createdPendingResponses },
+     
+      ].map((stat) => (
+        <div
+          key={stat.label}
+          className="rounded-xl border border-slate-200 bg-white px-4 py-3"
+        >
+          <p className="text-xs text-muted-foreground">{stat.label}</p>
+          <p className="mt-1 text-lg font-medium leading-tight">{stat.value}</p>
         </div>
-      ) : null}
+      ))}
+    </div>
+  ) : null;
 
-      <div className={cn("grid w-full gap-6", workspace.canManage ? "xl:grid-cols-[1.05fr_1.45fr]" : "grid-cols-1")}>
-        {workspace.canManage ? (
-          <Card className="rounded-[2rem] border-white/70 bg-white/90 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Sparkles className="h-4 w-4" />
-                HR Admin
-              </div>
-              <CardTitle>Programar encuesta de clima</CardTitle>
-              <CardDescription>
-                Se enviara a toda la empresa y quedara lista para marcarla con escala de 1 a 5.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form className="space-y-5" onSubmit={handleCreateSurvey}>
-                <div className="space-y-2">
-                  <Label htmlFor="survey-title">Titulo</Label>
-                  <Input
-                    id="survey-title"
-                    value={createForm.title}
-                    onChange={(event) => setCreateForm((current) => ({ ...current, title: event.target.value }))}
-                  />
-                </div>
+  // ── Create form ────────────────────────────────────────────────────────────
 
-                <div className="space-y-2">
-                  <Label htmlFor="survey-description">Descripcion</Label>
-                  <Textarea
-                    id="survey-description"
-                    value={createForm.description}
-                    onChange={(event) => setCreateForm((current) => ({ ...current, description: event.target.value }))}
-                  />
-                </div>
+  const createPanel = workspace.canManage ? (
+    <Card className="rounded-2xl border-slate-200 bg-white shadow-none">
+      <CardHeader className="border-b border-slate-100 pb-4">
+        <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Sparkles className="h-3.5 w-3.5" />
+          HR Admin
+        </p>
+        <CardTitle className="text-base">Programar encuesta de clima</CardTitle>
+        <CardDescription className="text-sm">
+          Se enviará a toda la empresa con escala del 1 al 5.
+        </CardDescription>
+      </CardHeader>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="space-y-2">
-                    <Label htmlFor="survey-start">Programar para</Label>
-                    <Input
-                      id="survey-start"
-                      type="date"
-                      value={createForm.startDate}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, startDate: event.target.value }))}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="survey-end">Cerrar el</Label>
-                    <Input
-                      id="survey-end"
-                      type="date"
-                      value={createForm.endDate}
-                      onChange={(event) => setCreateForm((current) => ({ ...current, endDate: event.target.value }))}
-                    />
-                  </div>
-                </div>
+      <CardContent className="pt-5">
+        <form className="space-y-4" onSubmit={handleCreateSurvey}>
+          {/* Title */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Título</Label>
+            <Input
+              value={createForm.title}
+              onChange={(e) =>
+                setCreateForm((c) => ({ ...c, title: e.target.value }))
+              }
+            />
+          </div>
 
-                <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4">
-                  <div className="mb-3 flex items-center gap-2 text-sm font-medium">
-                    <Shield className="h-4 w-4" />
-                    Privacidad
-                  </div>
-                  <label className="flex items-center gap-3 text-sm text-slate-700">
+          {/* Description */}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-medium text-muted-foreground">Descripción</Label>
+            <Textarea
+              value={createForm.description}
+              onChange={(e) =>
+                setCreateForm((c) => ({ ...c, description: e.target.value }))
+              }
+              className="min-h-[72px] resize-none"
+            />
+          </div>
+
+          {/* Dates */}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Programar para
+              </Label>
+              <Input
+                type="date"
+                value={createForm.startDate}
+                onChange={(e) =>
+                  setCreateForm((c) => ({ ...c, startDate: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium text-muted-foreground">Cerrar el</Label>
+              <Input
+                type="date"
+                value={createForm.endDate}
+                onChange={(e) =>
+                  setCreateForm((c) => ({ ...c, endDate: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+
+          {/* Privacy */}
+          <label className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700">
+            <Shield className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <Checkbox
+              checked={createForm.isAnonymous}
+              onCheckedChange={(v) =>
+                setCreateForm((c) => ({ ...c, isAnonymous: v === true }))
+              }
+            />
+            Respuestas anónimas para el análisis
+          </label>
+
+          {/* Questions */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Preguntas</p>
+              <p className="text-xs text-muted-foreground">
+                {enabledDraftQuestions.length} activas
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              {draftQuestions.map((question, index) => (
+                <div
+                  key={question.id}
+                  className="rounded-xl border border-slate-200 bg-slate-50/60"
+                >
+                  {/* Question header row */}
+                  <div className="flex items-start gap-3 p-3">
                     <Checkbox
-                      checked={createForm.isAnonymous}
-                      onCheckedChange={(checked) =>
-                        setCreateForm((current) => ({
-                          ...current,
-                          isAnonymous: checked === true,
-                        }))
+                      checked={question.enabled}
+                      onCheckedChange={(v) =>
+                        updateDraftQuestion(question.id, { enabled: v === true })
                       }
+                      className="mt-0.5"
                     />
-                    Mantener respuestas anonimas para el analisis de clima
-                  </label>
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium">Preguntas incluidas</p>
-                    <p className="text-sm text-muted-foreground">Edita, agrega o elimina preguntas antes de enviar.</p>
+                    <Textarea
+                      value={question.text}
+                      onChange={(e) =>
+                        updateDraftQuestion(question.id, { text: e.target.value })
+                      }
+                      placeholder={`Pregunta ${index + 1}`}
+                      className="min-h-[56px] resize-none text-sm"
+                    />
                   </div>
 
-                  <div className="space-y-3">
-                    {draftQuestions.map((question, index) => {
-                      return (
-                        <div
-                          key={question.id}
-                          className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/60 p-3"
+                  {/* Question meta row */}
+                  <div className="flex flex-wrap items-center gap-2 border-t border-slate-200 px-3 py-2">
+                    <Input
+                      value={question.dimension}
+                      onChange={(e) =>
+                        updateDraftQuestion(question.id, { dimension: e.target.value })
+                      }
+                      placeholder="Dimensión"
+                      className="h-7 w-28 text-xs"
+                    />
+
+                    {/* Type toggle */}
+                    <div className="flex rounded-full border border-slate-200 bg-white p-0.5">
+                      {(["scale", "text"] as const).map((type) => (
+                        <button
+                          key={type}
+                          type="button"
+                          onClick={() => updateDraftQuestion(question.id, { type })}
+                          className={cn(
+                            "rounded-full px-3 py-1 text-xs font-medium transition-colors",
+                            question.type === type
+                              ? "bg-slate-900 text-white"
+                              : "text-slate-500 hover:text-slate-700",
+                          )}
                         >
-                          <div className="flex items-start gap-3">
-                            <Checkbox checked={question.enabled} onCheckedChange={(value) => updateDraftQuestion(question.id, { enabled: value === true })} />
-                            <div className="grid flex-1 gap-3">
-                              <div className="space-y-2">
-                                <Label htmlFor={`question-text-${question.id}`}>Pregunta {index + 1}</Label>
-                                <Textarea
-                                  id={`question-text-${question.id}`}
-                                  value={question.text}
-                                  onChange={(event) => updateDraftQuestion(question.id, { text: event.target.value })}
-                                  placeholder="Escribe la pregunta"
-                                />
-                              </div>
-                              <div className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-                                <div className="space-y-2">
-                                  <Label htmlFor={`question-dimension-${question.id}`}>Dimension</Label>
-                                  <Input
-                                    id={`question-dimension-${question.id}`}
-                                    value={question.dimension}
-                                    onChange={(event) => updateDraftQuestion(question.id, { dimension: event.target.value })}
-                                  />
-                                </div>
-                                <div className="space-y-2">
-                                  <Label>Tipo</Label>
-                                  <div className="flex rounded-full border border-slate-200 bg-white p-1">
-                                    {(["scale", "text"] as const).map((type) => (
-                                      <button
-                                        key={type}
-                                        type="button"
-                                        onClick={() => updateDraftQuestion(question.id, { type })}
-                                        className={cn(
-                                          "rounded-full px-3 py-2 text-xs font-medium",
-                                          question.type === type ? "bg-slate-900 text-white" : "text-slate-600",
-                                        )}
-                                      >
-                                        {type === "scale" ? "1-5" : "Texto"}
-                                      </button>
-                                    ))}
-                                  </div>
-                                </div>
-                                <label className="flex items-end gap-2 pb-2 text-sm text-slate-700">
-                                  <Checkbox checked={question.required} onCheckedChange={(value) => updateDraftQuestion(question.id, { required: value === true })} />
-                                  Obligatoria
-                                </label>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex justify-end gap-2">
-                            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => duplicateDraftQuestion(question)}>
-                              <Copy className="h-4 w-4" />
-                              Duplicar
-                            </Button>
-                            <Button type="button" variant="outline" size="sm" className="rounded-full" onClick={() => removeDraftQuestion(question.id)}>
-                              <Trash2 className="h-4 w-4" />
-                              Eliminar
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <Button type="button" variant="outline" className="w-full rounded-full" onClick={addDraftQuestion}>
-                    <Plus className="h-4 w-4" />
-                    Agregar pregunta
-                  </Button>
-                </div>
-
-                {createError ? <p className="text-sm text-rose-600">{createError}</p> : null}
-
-                <Button type="submit" className="w-full rounded-full" disabled={isCreating || enabledDraftQuestions.length < 2}>
-                  <CalendarDays className="h-4 w-4" />
-                  {isCreating ? "Programando..." : "Programar encuesta"}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-        ) : null}
-
-        <div className="w-full space-y-6">
-          <Card className="w-full rounded-[2rem] border-white/70 bg-white/90 shadow-sm">
-            <CardHeader>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <ClipboardList className="h-4 w-4" />
-                Encuestas
-              </div>
-              <CardTitle>{workspace.canManage ? "Campanas y respuestas" : "Tus encuestas de clima"}</CardTitle>
-              <CardDescription>
-                {workspace.canManage
-                  ? "Revisa participacion y abre cualquier encuesta para validar la experiencia del colaborador."
-                  : "Marca tu percepcion del clima laboral con una encuesta corta y simple."}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {workspace.inbox.length === 0 ? (
-                <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50/80 p-6 text-sm text-muted-foreground">
-                  No hay encuestas disponibles por ahora.
-                </div>
-              ) : (
-                workspace.inbox.map((survey) => {
-                  const statusLabel = getSurveyStatusLabel(survey);
-                  const selected = survey.id === activeSurveyId;
-
-                  return (
-                    <button
-                      key={survey.id}
-                      type="button"
-                      onClick={() => setActiveSurveyId(survey.id)}
-                      className={cn(
-                        "w-full rounded-[1.5rem] border p-4 text-left transition",
-                        selected ? "border-primary bg-primary/5" : "border-slate-200 bg-slate-50/70 hover:border-slate-300",
-                      )}
-                    >
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-medium">{survey.title}</p>
-                          <p className="mt-1 text-sm text-muted-foreground">{survey.description}</p>
-                        </div>
-                        <Badge variant={statusLabel === "Respondida" ? "secondary" : "outline"}>{statusLabel}</Badge>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                        <span>{survey.questions.length} preguntas</span>
-                        <span>Inicio {survey.scheduled_for ?? survey.start_date ?? "-"}</span>
-                        {workspace.canManage ? <span>{survey.submitted_count}/{survey.assigned_count} respondieron</span> : null}
-                      </div>
-                    </button>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-
-          {activeSurvey ? (
-            <Card className="w-full rounded-[2rem] border-white/70 bg-white/90 shadow-sm">
-              <CardHeader>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="secondary">{getSurveyStatusLabel(activeSurvey)}</Badge>
-                  {activeSurvey.is_anonymous ? <Badge variant="outline">Anonima</Badge> : <Badge variant="outline">Identificada</Badge>}
-                </div>
-                <CardTitle>{activeSurvey.title}</CardTitle>
-                <CardDescription>{activeSurvey.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                {activeSurvey.questions.map((question) => (
-                  <div key={question.id} className="space-y-3 rounded-[1.75rem] border border-slate-200 bg-slate-50/70 p-4">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-medium text-slate-900">{question.question_text}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">{question.dimension}</p>
-                      </div>
-                      {question.required ? <Badge variant="outline">Obligatoria</Badge> : null}
+                          {type === "scale" ? "1–5" : "Texto"}
+                        </button>
+                      ))}
                     </div>
 
-                    {question.question_type === "scale" ? (
-                      <div className="grid gap-2 sm:grid-cols-5">
-                        {climateScaleOptions.map((value) => {
-                          const active = answers[question.id] === value;
-
-                          return (
-                            <button
-                              key={value}
-                              type="button"
-                              disabled={isSurveyCompleted(activeSurvey)}
-                              onClick={() => setScaleAnswer(question.id, value)}
-                              className={cn(
-                                "rounded-[1.25rem] border px-3 py-3 text-left transition",
-                                scaleButtonStyles[value],
-                                active ? "ring-2 ring-slate-900/15" : "opacity-80 hover:opacity-100",
-                              )}
-                            >
-                              <span className="block text-lg font-semibold">{value}</span>
-                              <span className="mt-1 block text-xs">{climateScaleLabels[value]}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    ) : (
-                      <Textarea
-                        placeholder="Escribe tu comentario"
-                        disabled={isSurveyCompleted(activeSurvey)}
-                        value={typeof answers[question.id] === "string" ? String(answers[question.id]) : ""}
-                        onChange={(event) => setTextAnswer(question.id, event.target.value)}
+                    <label className="flex cursor-pointer items-center gap-1.5 text-xs text-slate-600">
+                      <Checkbox
+                        checked={question.required}
+                        onCheckedChange={(v) =>
+                          updateDraftQuestion(question.id, { required: v === true })
+                        }
                       />
+                      Obligatoria
+                    </label>
+
+                    <div className="ml-auto flex gap-1.5">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 rounded-full px-2.5 text-xs text-muted-foreground"
+                        onClick={() => duplicateDraftQuestion(question)}
+                      >
+                        <Copy className="mr-1 h-3 w-3" />
+                        Duplicar
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 rounded-full px-2.5 text-xs text-muted-foreground hover:text-rose-600"
+                        onClick={() => removeDraftQuestion(question.id)}
+                      >
+                        <Trash2 className="mr-1 h-3 w-3" />
+                        Eliminar
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-full rounded-lg border-dashed text-xs text-muted-foreground"
+              onClick={addDraftQuestion}
+            >
+              <Plus className="mr-1.5 h-3.5 w-3.5" />
+              Agregar pregunta
+            </Button>
+          </div>
+
+          {createError && <p className="text-xs text-rose-600">{createError}</p>}
+
+          <Button
+            type="submit"
+            size="sm"
+            className="w-full rounded-lg"
+            disabled={isCreating || enabledDraftQuestions.length < 2}
+          >
+            <CalendarDays className="mr-1.5 h-3.5 w-3.5" />
+            {isCreating ? "Programando…" : "Programar encuesta"}
+          </Button>
+        </form>
+      </CardContent>
+    </Card>
+  ) : null;
+
+  // ── Survey list + detail ───────────────────────────────────────────────────
+
+  const surveyListAndDetail = (
+    <div className="space-y-4">
+      {/* Survey list */}
+      <Card className="rounded-2xl border-slate-200 bg-white shadow-none">
+        <CardHeader className="border-b border-slate-100 pb-4">
+          <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <ClipboardList className="h-3.5 w-3.5" />
+            Encuestas
+          </p>
+          <CardTitle className="text-base">
+            {workspace.canManage ? "Campañas y respuestas" : "Tus encuestas de clima"}
+          </CardTitle>
+          <CardDescription className="text-sm">
+            {workspace.canManage
+              ? "Revisa participación y abre cualquier encuesta para validar la experiencia."
+              : "Marca tu percepción del clima laboral con una encuesta corta."}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2 pt-4">
+          {workspace.inbox.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-slate-200 p-4 text-sm text-muted-foreground">
+              No hay encuestas disponibles por ahora.
+            </p>
+          ) : (
+            workspace.inbox.map((survey) => {
+              const statusLabel = getSurveyStatusLabel(survey);
+              const selected = survey.id === activeSurveyId;
+
+              return (
+                <button
+                  key={survey.id}
+                  type="button"
+                  onClick={() => setActiveSurveyId(survey.id)}
+                  className={cn(
+                    "w-full rounded-xl border px-4 py-3 text-left transition-colors",
+                    selected
+                      ? "border-slate-300 bg-slate-50"
+                      : "border-slate-200 hover:border-slate-300",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{survey.title}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {survey.description}
+                      </p>
+                    </div>
+                    <StatusBadge label={statusLabel} />
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    <span>{survey.questions.length} preguntas</span>
+                    <span>Inicio {survey.scheduled_for ?? survey.start_date ?? "—"}</span>
+                    {workspace.canManage && (
+                      <span>
+                        {survey.submitted_count}/{survey.assigned_count} respondieron
+                      </span>
                     )}
                   </div>
-                ))}
+                </button>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
 
-                {workspace.canManage ? (
-                  <div className="rounded-[1.75rem] border border-emerald-200 bg-emerald-50/70 p-4 text-sm text-emerald-900">
-                    Participacion actual: {activeSurvey.submitted_count} de {activeSurvey.assigned_count} colaboradores ({activeSurvey.participation_rate}%).
+      {/* Active survey detail */}
+      {activeSurvey && (
+        <Card className="rounded-2xl border-slate-200 bg-white shadow-none">
+          <CardHeader className="border-b border-slate-100 pb-4">
+            <div className="flex flex-wrap gap-1.5">
+              <StatusBadge label={getSurveyStatusLabel(activeSurvey)} />
+              <span className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] font-medium text-slate-600">
+                {activeSurvey.is_anonymous ? "Anónima" : "Identificada"}
+              </span>
+            </div>
+            <CardTitle className="text-base">{activeSurvey.title}</CardTitle>
+            <CardDescription className="text-sm">{activeSurvey.description}</CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4 pt-4">
+            {activeSurvey.questions.map((question) => (
+              <div
+                key={question.id}
+                className="overflow-hidden rounded-xl border border-slate-200"
+              >
+                {/* Question header */}
+                <div className="flex items-start justify-between gap-3 bg-slate-50 px-4 py-3">
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">
+                      {question.question_text}
+                    </p>
+                    {question.dimension && (
+                      <p className="mt-0.5 text-[10px] uppercase tracking-widest text-muted-foreground">
+                        {question.dimension}
+                      </p>
+                    )}
                   </div>
-                ) : null}
-
-                {submitError ? <p className="text-sm text-rose-600">{submitError}</p> : null}
-
-                <div className="flex flex-wrap gap-3">
-                  <Button
-                    onClick={handleSubmitSurvey}
-                    disabled={isSubmitting || isSurveyCompleted(activeSurvey) || hasIncompleteRequiredAnswers}
-                    className="rounded-full"
-                  >
-                    {isSurveyCompleted(activeSurvey) ? <CheckCircle2 className="h-4 w-4" /> : <Send className="h-4 w-4" />}
-                    {isSurveyCompleted(activeSurvey) ? "Encuesta enviada" : isSubmitting ? "Enviando..." : "Enviar encuesta"}
-                  </Button>
-                  {activeSurvey.submitted_at ? (
-                    <p className="self-center text-sm text-muted-foreground">Respondida el {activeSurvey.submitted_at.slice(0, 10)}</p>
-                  ) : null}
+                  {question.required && (
+                    <span className="inline-flex shrink-0 items-center rounded-full border border-rose-200 bg-rose-50 px-2 py-0.5 text-[10px] font-medium text-rose-700">
+                      Obligatoria
+                    </span>
+                  )}
                 </div>
-              </CardContent>
-            </Card>
-          ) : null}
-        </div>
+
+                {/* Scale / Text input */}
+                <div className="p-3">
+                  {question.question_type === "scale" ? (
+                    <div className="grid grid-cols-5 gap-1.5">
+                      {climateScaleOptions.map((value) => {
+                        const isActive = answers[question.id] === value;
+                        const styles = scaleButtonStyles[value];
+                        return (
+                          <button
+                            key={value}
+                            type="button"
+                            disabled={isSurveyCompleted(activeSurvey)}
+                            onClick={() => setScaleAnswer(question.id, value)}
+                            className={cn(
+                              "rounded-lg border py-3 text-center transition-all disabled:cursor-default",
+                              isActive ? styles.active : styles.base,
+                              !isActive && !isSurveyCompleted(activeSurvey) && "hover:opacity-90",
+                            )}
+                          >
+                            <span className="block text-base font-semibold">{value}</span>
+                            <span className="mt-0.5 block text-[10px] leading-tight">
+                              {climateScaleLabels[value]}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <Textarea
+                      placeholder="Escribe tu comentario…"
+                      disabled={isSurveyCompleted(activeSurvey)}
+                      value={
+                        typeof answers[question.id] === "string"
+                          ? String(answers[question.id])
+                          : ""
+                      }
+                      onChange={(e) => setTextAnswer(question.id, e.target.value)}
+                      className="min-h-[72px] resize-none text-sm"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {/* Participation */}
+            {workspace.canManage && (
+              <div className="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3">
+                <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-emerald-500 transition-all"
+                    style={{ width: `${activeSurvey.participation_rate}%` }}
+                  />
+                </div>
+                <span className="shrink-0 text-xs text-muted-foreground">
+                  {activeSurvey.submitted_count}/{activeSurvey.assigned_count} ·{" "}
+                  {activeSurvey.participation_rate}%
+                </span>
+              </div>
+            )}
+
+            {submitError && <p className="text-xs text-rose-600">{submitError}</p>}
+
+            {/* Submit */}
+            <div className="flex flex-wrap items-center gap-3">
+              <Button
+                size="sm"
+                onClick={handleSubmitSurvey}
+                disabled={
+                  isSubmitting ||
+                  isSurveyCompleted(activeSurvey) ||
+                  hasIncompleteRequiredAnswers
+                }
+                className="rounded-lg"
+                variant={isSurveyCompleted(activeSurvey) ? "outline" : "default"}
+              >
+                {isSurveyCompleted(activeSurvey) ? (
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                ) : (
+                  <Send className="mr-1.5 h-3.5 w-3.5" />
+                )}
+                {isSurveyCompleted(activeSurvey)
+                  ? "Encuesta enviada"
+                  : isSubmitting
+                    ? "Enviando…"
+                    : "Enviar encuesta"}
+              </Button>
+
+              {activeSurvey.submitted_at && (
+                <p className="text-xs text-muted-foreground">
+                  Respondida el {activeSurvey.submitted_at.slice(0, 10)}
+                </p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+
+  // ── Layout ─────────────────────────────────────────────────────────────────
+
+  const workspaceContent = (
+    <div className="space-y-4">
+      {statsBar}
+      <div
+        className={cn(
+          "grid gap-4",
+          workspace.canManage ? "xl:grid-cols-[1fr_1.4fr]" : "grid-cols-1",
+        )}
+      >
+        {createPanel}
+        {surveyListAndDetail}
       </div>
     </div>
   );
 
-  if (!workspace.canManage) {
-    return workspaceContent;
-  }
+  if (!workspace.canManage) return workspaceContent;
 
   return (
-    <Tabs defaultValue="workspace" className="space-y-6">
-      <TabsList className="rounded-2xl bg-white/90 p-1">
-        <TabsTrigger value="workspace">Programar y responder</TabsTrigger>
-        <TabsTrigger value="results">Resultados</TabsTrigger>
+    <Tabs defaultValue="workspace" className="space-y-4">
+      <TabsList className="rounded-xl bg-white p-1 shadow-none border border-slate-200">
+        <TabsTrigger value="workspace" className="rounded-lg text-sm">
+          Programar y responder
+        </TabsTrigger>
+        <TabsTrigger value="results" className="rounded-lg text-sm">
+          Resultados
+        </TabsTrigger>
       </TabsList>
       <TabsContent value="workspace">{workspaceContent}</TabsContent>
       <TabsContent value="results">
