@@ -35,9 +35,11 @@ export function TabsList({ children, className }: { children: React.ReactNode; c
 export function TabsTrigger({
   value,
   children,
+  className,
 }: {
   value: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   const context = React.useContext(TabsContext);
   if (!context) return null;
@@ -51,6 +53,7 @@ export function TabsTrigger({
       className={cn(
         "rounded-xl px-4 py-2 text-sm transition",
         active ? "bg-card text-foreground shadow-sm" : "text-muted-foreground",
+        className,
       )}
     >
       {children}
