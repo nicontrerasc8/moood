@@ -261,6 +261,12 @@ export type DashboardFilters = {
   workShift?: string;
   occupationalGroup?: string;
   companyType?: string;
+  tenureBand?: string;
+  shiftName?: string;
+  costCenter?: string;
+  teamName?: string;
+  projectName?: string;
+  isLeader?: string;
 };
 
 export type DashboardFilterOptions = {
@@ -273,6 +279,13 @@ export type DashboardFilterOptions = {
   workShifts: string[];
   occupationalGroups: string[];
   companyTypes: string[];
+  ageBands: string[];
+  tenureBands: string[];
+  shiftNames: string[];
+  costCenters: string[];
+  teamNames: string[];
+  projectNames: string[];
+  leaderStatuses: string[];
 };
 
 export type Kpi = {

@@ -21,7 +21,12 @@ export async function GET(request: Request) {
     education: searchParams.get("education") ?? "",
     workShift: searchParams.get("workShift") ?? "",
     occupationalGroup: searchParams.get("occupationalGroup") ?? "",
-    companyType: searchParams.get("companyType") ?? "",
+    tenureBand: searchParams.get("tenureBand") ?? "",
+    shiftName: searchParams.get("shiftName") ?? "",
+    costCenter: searchParams.get("costCenter") ?? "",
+    teamName: searchParams.get("teamName") ?? "",
+    projectName: searchParams.get("projectName") ?? "",
+    isLeader: searchParams.get("isLeader") ?? "",
   });
 
   return NextResponse.json(data);

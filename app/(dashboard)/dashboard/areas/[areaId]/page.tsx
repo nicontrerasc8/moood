@@ -6,7 +6,7 @@ import { DashboardClient } from "@/components/dashboard/dashboard-client";
 import { Button } from "@/components/ui/button";
 import { ModuleHeader } from "@/components/layout/module-header";
 import { requireRole } from "@/lib/auth/session";
-import { getAreaDashboardDetail, getDashboardSnapshot } from "@/lib/queries/moood";
+import { getAreaDashboardDetail, getDashboardSnapshot, getFilterOptions } from "@/lib/queries/moood";
 
 export default async function AreaDashboardPage({
   params,
@@ -16,9 +16,10 @@ export default async function AreaDashboardPage({
   await connection();
   const user = await requireRole("hr_admin");
   const { areaId } = await params;
-  const [snapshot, detail] = await Promise.all([
+  const [snapshot, detail, filterOptions] = await Promise.all([
     getDashboardSnapshot(user, { orgUnitId: areaId }),
     getAreaDashboardDetail(user, areaId),
+    getFilterOptions(user),
   ]);
 
   if (!detail || snapshot.areaMoods.length === 0) {
@@ -40,7 +41,7 @@ export default async function AreaDashboardPage({
           </Button>
         )}
       />
-      <DashboardClient initialData={snapshot} scopeFilters={{ orgUnitId: areaId }} />
+      <DashboardClient initialData={snapshot} filterOptions={filterOptions} scopeFilters={{ orgUnitId: areaId }} />
     </div>
   );
 }

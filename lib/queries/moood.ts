@@ -41,6 +41,11 @@ type EmployeeScopeRow = {
   company_type: string | null;
   age_band: string | null;
   tenure_band: string | null;
+  shift_name: string | null;
+  cost_center: string | null;
+  team_name: string | null;
+  project_name: string | null;
+  is_leader: boolean | null;
   full_name: string | null;
 };
 
@@ -61,6 +66,11 @@ type MoodViewRow = {
   company_type: string | null;
   age_band: string | null;
   tenure_band: string | null;
+  shift_name?: string | null;
+  cost_center?: string | null;
+  team_name?: string | null;
+  project_name?: string | null;
+  is_leader?: boolean | null;
   checkin_date: string;
   checkin_at: string;
   mood_score: number;
@@ -79,6 +89,11 @@ type EmployeeProfilesSelectRow = {
   company_type: string | null;
   age_band: string | null;
   tenure_band: string | null;
+  shift_name: string | null;
+  cost_center: string | null;
+  team_name: string | null;
+  project_name: string | null;
+  is_leader: boolean | null;
 };
 
 type EmployeesSelectRow = {
@@ -125,6 +140,13 @@ type FilterProfileRow = {
   work_schedule: string | null;
   occupational_group: string | null;
   company_type: string | null;
+  age_band: string | null;
+  tenure_band: string | null;
+  shift_name: string | null;
+  cost_center: string | null;
+  team_name: string | null;
+  project_name: string | null;
+  is_leader: boolean | null;
 };
 
 type OrgUnitAreaRow = {
@@ -362,6 +384,16 @@ function matchesAgeRange(age: number, range: string) {
   return true;
 }
 
+function matchesTenureBand(tenureYears: number, band: string) {
+  if (!band) return true;
+  if (band === "0-1") return tenureYears <= 1;
+  if (band === "1-3") return tenureYears > 1 && tenureYears <= 3;
+  if (band === "2-4") return tenureYears >= 2 && tenureYears <= 4;
+  if (band === "3-5") return tenureYears > 3 && tenureYears <= 5;
+  if (band === "5+") return tenureYears > 5;
+  return true;
+}
+
 function average(values: number[]) {
   if (values.length === 0) return 0;
   return values.reduce((sum, value) => sum + value, 0) / values.length;
@@ -497,6 +529,41 @@ function isDateInDashboardRange(date: string, filters: Partial<DashboardFilters>
   if (legacyDate && date !== legacyDate) return false;
   if (filters.fromDate && date < filters.fromDate) return false;
   if (filters.toDate && date > filters.toDate) return false;
+  return true;
+}
+
+function hasScopedEmployeeFilters(filters: Partial<DashboardFilters>) {
+  return Boolean(
+    filters.gender ||
+    filters.ageRange ||
+    filters.jobTitle ||
+    filters.education ||
+    filters.workShift ||
+    filters.occupationalGroup ||
+    filters.companyType ||
+    filters.tenureBand ||
+    filters.shiftName ||
+    filters.costCenter ||
+    filters.teamName ||
+    filters.projectName ||
+    filters.isLeader,
+  );
+}
+
+function matchesRowProfileFilters(row: MoodViewRow, filters: Partial<DashboardFilters>) {
+  if (filters.gender && row.gender !== filters.gender) return false;
+  if (filters.ageRange && row.age_band !== filters.ageRange) return false;
+  if (filters.jobTitle && row.job_title !== filters.jobTitle) return false;
+  if (filters.education && row.education_level !== filters.education) return false;
+  if (filters.workShift && row.work_schedule !== filters.workShift) return false;
+  if (filters.occupationalGroup && row.occupational_group !== filters.occupationalGroup) return false;
+  if (filters.companyType && row.company_type !== filters.companyType) return false;
+  if (filters.tenureBand && row.tenure_band !== filters.tenureBand) return false;
+  if (filters.shiftName && row.shift_name !== filters.shiftName) return false;
+  if (filters.costCenter && row.cost_center !== filters.costCenter) return false;
+  if (filters.teamName && row.team_name !== filters.teamName) return false;
+  if (filters.projectName && row.project_name !== filters.projectName) return false;
+  if (filters.isLeader && String(row.is_leader) !== filters.isLeader) return false;
   return true;
 }
 
@@ -777,6 +844,8 @@ function buildMockSnapshot(user: AppUser, filters: Partial<DashboardFilters>): D
     if (filters.workShift && employee.work_shift !== filters.workShift) return false;
     if (filters.occupationalGroup && employee.occupational_group !== filters.occupationalGroup) return false;
     if (filters.companyType && employee.company_type !== filters.companyType) return false;
+    if (filters.tenureBand && !matchesTenureBand(employee.tenure_years, filters.tenureBand)) return false;
+    if (filters.isLeader && String(employee.role === "hr_admin") !== filters.isLeader) return false;
     return true;
   });
 
@@ -903,7 +972,12 @@ async function getScopedEmployeeRows(user: AppUser, filters: Partial<DashboardFi
           work_schedule,
           company_type,
           age_band,
-          tenure_band
+          tenure_band,
+          shift_name,
+          cost_center,
+          team_name,
+          project_name,
+          is_leader
         )
       `);
   let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name");
@@ -943,6 +1017,11 @@ async function getScopedEmployeeRows(user: AppUser, filters: Partial<DashboardFi
     company_type: row.employee_profiles?.[0]?.company_type ?? null,
     age_band: row.employee_profiles?.[0]?.age_band ?? null,
     tenure_band: row.employee_profiles?.[0]?.tenure_band ?? null,
+    shift_name: row.employee_profiles?.[0]?.shift_name ?? null,
+    cost_center: row.employee_profiles?.[0]?.cost_center ?? null,
+    team_name: row.employee_profiles?.[0]?.team_name ?? null,
+    project_name: row.employee_profiles?.[0]?.project_name ?? null,
+    is_leader: row.employee_profiles?.[0]?.is_leader ?? null,
     full_name: null,
   }));
 
@@ -958,6 +1037,12 @@ async function getScopedEmployeeRows(user: AppUser, filters: Partial<DashboardFi
     if (filters.workShift && row.work_schedule !== filters.workShift) return false;
     if (filters.occupationalGroup && row.occupational_group !== filters.occupationalGroup) return false;
     if (filters.companyType && row.company_type !== filters.companyType) return false;
+    if (filters.tenureBand && row.tenure_band !== filters.tenureBand) return false;
+    if (filters.shiftName && row.shift_name !== filters.shiftName) return false;
+    if (filters.costCenter && row.cost_center !== filters.costCenter) return false;
+    if (filters.teamName && row.team_name !== filters.teamName) return false;
+    if (filters.projectName && row.project_name !== filters.projectName) return false;
+    if (filters.isLeader && String(row.is_leader) !== filters.isLeader) return false;
     return true;
   });
 }
@@ -1007,6 +1092,8 @@ async function getSupabaseDashboardSnapshot(
 
   const rows = (data ?? []) as unknown as MoodViewRow[];
   const scopedEmployees = scopedEmployeesResult;
+  const scopedEmployeeIds = new Set(scopedEmployees.map((employee) => employee.id));
+  const shouldConstrainToScopedEmployees = hasScopedEmployeeFilters(filters);
   const orgUnitRows = ((orgUnitsResult.data ?? []) as OrgUnitAreaRow[]).map((orgUnit) => ({
     id: orgUnit.id,
     parent_id: orgUnit.parent_id,
@@ -1018,6 +1105,7 @@ async function getSupabaseDashboardSnapshot(
   const filteredRows = rows.filter((row) => {
     if (filters.companyId && row.company_id !== filters.companyId) return false;
     if (filters.orgUnitId && !matchesOrgUnitScope(row.org_unit_id, filters.orgUnitId, orgUnitRows)) return false;
+    if (shouldConstrainToScopedEmployees && !matchesRowProfileFilters(row, filters) && (!row.employee_id || !scopedEmployeeIds.has(row.employee_id))) return false;
     if (row.full_name === null && row.org_unit_id === null && row.location_id === null) return false;
     return true;
   });
@@ -1491,6 +1579,13 @@ export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOp
       workShifts: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.work_shift))],
       occupationalGroups: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.occupational_group))],
       companyTypes: [...new Set(filterEmployeesForUser(activeUser).map((employee) => employee.company_type))],
+      ageBands: ["18-25", "26-35", "36-45", "46+"],
+      tenureBands: ["0-1", "1-3", "3-5", "5+"],
+      shiftNames: [],
+      costCenters: [],
+      teamNames: [],
+      projectNames: [],
+      leaderStatuses: ["true", "false"],
     };
   }
 
@@ -1501,7 +1596,7 @@ export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOp
     let orgUnitsQuery = supabase.from("org_units").select("id,parent_id,name").order("name");
     let profilesQuery = supabase
       .from("employee_profiles")
-      .select("gender,job_title,education_level,work_schedule,occupational_group,company_type");
+      .select("gender,job_title,education_level,work_schedule,occupational_group,company_type,age_band,tenure_band,shift_name,cost_center,team_name,project_name,is_leader");
 
     if (user.company_id) {
       companiesQuery = companiesQuery.eq("id", user.company_id);
@@ -1535,6 +1630,13 @@ export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOp
         workShifts: [...new Set(profiles.map((item) => item.work_schedule).filter((item): item is string => Boolean(item)))],
         occupationalGroups: [...new Set(profiles.map((item) => item.occupational_group).filter((item): item is string => Boolean(item)))],
         companyTypes: [...new Set(profiles.map((item) => item.company_type).filter((item): item is string => Boolean(item)))],
+        ageBands: [...new Set(profiles.map((item) => item.age_band).filter((item): item is string => Boolean(item)))],
+        tenureBands: [...new Set(profiles.map((item) => item.tenure_band).filter((item): item is string => Boolean(item)))],
+        shiftNames: [...new Set(profiles.map((item) => item.shift_name).filter((item): item is string => Boolean(item)))],
+        costCenters: [...new Set(profiles.map((item) => item.cost_center).filter((item): item is string => Boolean(item)))],
+        teamNames: [...new Set(profiles.map((item) => item.team_name).filter((item): item is string => Boolean(item)))],
+        projectNames: [...new Set(profiles.map((item) => item.project_name).filter((item): item is string => Boolean(item)))],
+        leaderStatuses: [...new Set(profiles.map((item) => String(Boolean(item.is_leader))))],
       };
     }
   }
@@ -1558,6 +1660,13 @@ export async function getFilterOptions(user: AppUser): Promise<DashboardFilterOp
     workShifts: [...new Set(filterEmployeesForUser(user).map((employee) => employee.work_shift))],
     occupationalGroups: [...new Set(filterEmployeesForUser(user).map((employee) => employee.occupational_group))],
     companyTypes: [...new Set(filterEmployeesForUser(user).map((employee) => employee.company_type))],
+    ageBands: ["18-25", "26-35", "36-45", "46+"],
+    tenureBands: ["0-1", "1-3", "3-5", "5+"],
+    shiftNames: [],
+    costCenters: [],
+    teamNames: [],
+    projectNames: [],
+    leaderStatuses: ["true", "false"],
   };
 }
 

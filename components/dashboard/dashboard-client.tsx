@@ -20,7 +20,7 @@ import { AreaMoodBoard } from "@/components/dashboard/area-mood-board";
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { useDashboardSnapshot } from "@/hooks/use-dashboard-snapshot";
 import { cn } from "@/lib/utils";
-import type { ChartPoint, DashboardFilters as DashboardFiltersType, DashboardSnapshot } from "@/types/app";
+import type { ChartPoint, DashboardFilterOptions, DashboardFilters as DashboardFiltersType, DashboardSnapshot } from "@/types/app";
 
 const chartColors = [
   "rgb(var(--brand-teal))",
@@ -399,9 +399,11 @@ function TrendChart({ data }: { data: DashboardSnapshot }) {
 
 export function DashboardClient({
   initialData,
+  filterOptions,
   scopeFilters = {},
 }: {
   initialData: DashboardSnapshot;
+  filterOptions: DashboardFilterOptions;
   scopeFilters?: Partial<DashboardFiltersType>;
 }) {
   const [filters, setFilters] = useState<DashboardFiltersType>(() => buildInitialFilters(initialData, scopeFilters));
@@ -429,7 +431,7 @@ export function DashboardClient({
   if (!hasData) {
     return (
       <div className="space-y-6">
-        <DashboardFilters value={filters} onApply={handleApplyFilters} isLoading={isLoading} />
+        <DashboardFilters value={filters} options={filterOptions} onApply={handleApplyFilters} isLoading={isLoading} />
         <EmptyState title="Sin datos" description="Todavia no hay informacion para este dashboard." />
       </div>
     );
@@ -437,7 +439,7 @@ export function DashboardClient({
 
   return (
     <div className="space-y-6">
-      <DashboardFilters value={filters} onApply={handleApplyFilters} isLoading={isLoading} />
+      <DashboardFilters value={filters} options={filterOptions} onApply={handleApplyFilters} isLoading={isLoading} />
 
       <div className="grid gap-6 xl:grid-cols-3">
         <MoodIndexCard value={weightedMood} />
